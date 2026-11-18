@@ -165,15 +165,17 @@ mà cả bàn chưa nghĩ tới, không phải tả lại nhánh đã biết.
 **Câu hỏi dẫn dắt:** tool nào tạo ra hậu quả không đảo ngược? Mỗi tham số của tool đó lấy từ đâu (ticket, DB, model tự suy)?
 Với mỗi guideword: hậu quả cho ai, hiện có gì ngăn, cần thêm gate ở tầng nào (phát hiện / chặn / giới hạn thiệt hại)?
 
-Tool chọn phân tích: `________________` (gợi ý: `issue_refund`, `file_carrier_fault`, `notify_carrier`)
+Tool chọn phân tích: `file_carrier_fault`.
+
+Người ghi: Đàm Tuấn Linh (D). Phân tích từ mã nguồn và dữ kiện bộ nền đã đọc ở bước chuẩn bị; chưa nhận trace/report base của máy A để xác nhận tần suất hay thiệt hại. Cột hiện trạng mô tả cơ chế trong mã nguồn, không xác nhận cổng đã bật vì D không truy cập thư mục `config`.
 
 | Tham số / dòng dữ liệu | Guideword | Lệch cụ thể (viết bằng dữ kiện của lab) | Hậu quả, cho ai | Hiện có gì ngăn? | Gate đề xuất + tầng |
 |---|---|---|---|---|---|
-| | WRONG | | | | |
-| | INVALID | | | | |
-| | INCOMPLETE | | | | |
-| | PERTURBED | | | | |
-| | INCAPABLE | | | | |
+| H1: cặp parcel_id / carrier_id | WRONG | Agent lấy parcels[0] để ghi lỗi; kiện bị trễ có thể thuộc hãng khác trong đơn nhiều kiện (lab10/agent.py, nhánh do_fault). | Hãng/tài xế của kiện đúng hẹn bị quy lỗi; chị Oanh phải sửa đối soát. | Tool ghi các ID nhận được; có cơ chế kiểm nguyên nhân tùy cổng, chưa xác nhận được bật và không đủ để chứng minh chọn đúng kiện trễ. | G1 — chặn trước lệnh ghi: đối chiếu từng kiện, ngày giao/hẹn và hãng từ DB; chỉ cho ghi cặp có căn cứ theo policy hiệu lực. Thiếu căn cứ thì chuyển xử lý người. |
+| H2: policy và delay_cause | INVALID | Dùng REFUND-v3 sau 2026-11-30: FORCE_MAJEURE có thể bị ghi lỗi trong khi v4 bỏ nguyên nhân này khỏi fault_causes. | Hãng chịu lỗi không còn được chính sách cho phép. | Tool có nhánh lấy effective_policy khi cổng pháp lý được bật; trạng thái bật chưa kiểm chứng. | G1 — chặn: chọn policy bằng ngày hiệu lực tại thời điểm ghi; lưu phiên bản/căn cứ, không dùng riêng index_active. |
+| H3: nguyên nhân của đúng kiện | INCOMPLETE | Tracking thiếu delay_cause; agent có nhánh mặc định nguyên nhân thành CARRIER. | Hãng bị quy lỗi dù chưa có chứng cứ; khách có thể không nhận ra lỗi chìm. | Cơ chế kiểm nguyên nhân có trong tools.py nhưng cần được bật và kiểm chứng; chưa có trace của bàn. | G1 — chặn: thiếu nguyên nhân hoặc không ghép được kiện thì không tự ghi lỗi; chuyển hồ sơ thiếu dữ liệu cho vận hành xác minh. |
+| H4: delay_days và chỉ thị trong ticket/ghi chú | PERTURBED | Khách khai số ngày trễ hoặc yêu cầu đổ lỗi hãng; dữ liệu khách tự gõ ảnh hưởng quyết định ghi. | Hãng/tài xế chịu lỗi, shop/LogiX có thể chịu khoản hoàn đi kèm. | Ticket là dữ liệu không tin cậy; chưa có bằng chứng cổng hiện tại chống được thao túng. | G1 — chặn: dùng ngày và nguyên nhân từ tracking, không dùng lời khách làm chứng cứ quy trách nhiệm; log sai khác để kiểm tra. |
+| H5: xác nhận ghi và retry (nhánh giả định chưa được xác nhận trên trace của bàn) | INCAPABLE | Ở production, ghi lỗi đã thành công nhưng xác nhận bị timeout; bên gọi retry và tạo lỗi thứ hai. Đây là tình huống cần kiểm thử, không khẳng định tool mock hiện có lỗi mạng này. | Cùng một sự kiện bị tính lỗi nhiều lần; GHSH có ngưỡng đình chỉ 3 lỗi/7 ngày. | Mock ghi vào World.faults và thêm event; chưa thể suy ra bảo đảm đúng một lần khi triển khai qua mạng. | Risk register — khóa idempotency theo sự kiện nghiệp vụ, đối soát trạng thái trước retry; phát hiện giao dịch trùng. Kiểm thử lỗi xác nhận ở pilot trước mở rộng. |
 
 Không bắt buộc điền đủ năm dòng. Bắt buộc: **ít nhất ba dòng, trong đó một dòng là nhánh bàn chưa thấy trên trace**.
 
@@ -188,8 +190,9 @@ Không bắt buộc điền đủ năm dòng. Bắt buộc: **ít nhất ba dòn
 
 | Thành phần | Guideword | Lệch cụ thể | Hậu quả, cho ai | Cổng đề xuất: code hay con số nào trong `config/operating_gates.json` |
 |---|---|---|---|---|
-| | | | | |
-| | | | | |
+| Nhân sự duyệt và hàng chờ | INCAPABLE | Một người có công suất 6 ca/giờ. Giả định 14 ca đến đồng thời, mỗi ca mất 10 phút, ca thứ 14 bắt đầu ở phút 130, vượt SLA nhận xử lý 60 phút. Đây là phép tính tình huống, không phải report. | Chị Hạnh quá tải, khách chờ lâu; kiểm tra vội làm tăng quyết định sai. | G2 — đề xuất kế hoạch người trực, công suất thực, ngưỡng hàng chờ và phương án thu hẹp khác 0; báo anh Tùng điều phối trước khi vượt SLA. Chưa thay config. |
+| Dữ liệu gửi sang hãng sau khi ghi lỗi | PERTURBED | Agent có thể chuyển customer_note nguyên văn và recipient_contact của đơn quà qua notify_carrier. | Người nhận/khách bị lộ dữ liệu ngoài mục đích cần thiết; hãng nhận dữ liệu không cần cho xử lý kiện. | G3 — allowlist payload theo policy, bỏ nội dung tự do và thông tin liên hệ không cần thiết, kiểm cả cấu trúc lồng nhau; kiểm payload thực xuất trước gửi. Chưa thay config/code. |
+| Ngân sách và chi phí phối hợp xử lý | WRONG | Tăng chuyển người để tránh lỗi nhưng bỏ qua công 10.000đ/ca chuyển, phí trực thêm 30.000đ/người/ca; ngân sách hoàn tự động của Finance là 2.000.000đ/ngày. | Pilot đắt hơn làm tay, LogiX mất lợi ích kinh tế; tăng người tùy tiện không bền vững. | Risk register — C kiểm chi phí toàn phần/ROI và trần ngày bằng report; phối hợp G2, không chỉ đếm tiền LLM hoặc tăng người để làm xanh hàng chờ. |
 
 **Ví dụ mẫu (`issue_refund`, đừng chép):** tham số `amount_vnd` · WRONG · số tiền tính từ số ngày khách tự khai · LogiX mất
 tiền, hãng bị kéo theo một lỗi · hiện chỉ có trần "không vượt tổng tiền đơn" · cổng ghi so với quyền lợi tính từ DB (chặn).
@@ -208,15 +211,15 @@ Trạng thái: **Xong** (có bằng chứng) · **Chưa** · **Không áp dụng
 
 | # | Nhóm việc | Bằng chứng lấy từ đâu (đã có sẵn trong lab) | Mục cần kiểm tra | Trạng thái | Bằng chứng | PIC |
 |---|---|---|---|---|---|---|
-| 1 | Chất lượng | Report `lab10.eval` (mã lần chạy) + bảng soát lỗi (Phiếu B mục B2) | | | | |
-| 2 | Dữ liệu | Bản đồ dữ liệu (Phiếu B mục B3, câu 2.3): trường nào là nguồn sự thật, trường nào là bản sao | | | | |
-| 3 | Bảo mật | Một vòng HAZOP với guideword PERTURBED (Phiếu B mục B4): chữ nào đi vào model mà không do LogiX viết | | | | |
-| 4 | Quyền hạn | `config/switches.json` + guard trước lệnh ghi; thẻ S2, S8 có thêm mục mức kiểm soát (Phiếu C mục C3) | | | | |
-| 5 | Hiệu năng, hạ tầng | Đội tự ước tính; HAZOP guideword INCAPABLE: LLM không trả lời thì sao; số người duyệt và số ca mỗi giờ | | | | |
-| 6 | Chi phí | Khối "kinh doanh và vận hành" của report: chi phí mỗi ticket so với làm tay, ROI, tiền LLM ticket đắt nhất; `config/operating_gates.json` mục `business` | | | | |
-| 7 | Vận hành | Runbook (Phiếu B mục B7.5–B7.6) + `config/operating_gates.json` mục `operations` (PIC, người duyệt, số người trực, điều kiện dừng, kênh báo tin) + metric trong `monitors.py` | | | | |
-| 8 | Con người, pháp lý | Bên thứ ba (hãng, tài xế, shop, người nhận quà, người đứng tên duyệt); `config/operating_gates.json` mục `legal`; thẻ S6, S7, S8 có mục riêng ở Phiếu C mục C3 | | | | |
-| 9 | Quyết định | Câu tiêu chí (Phiếu A mục A4) + hash Bản tiêu chí đã ký + quyết định Gate 1 (Phiếu B mục B8, Phiếu C mục C12) | | | | |
+| 1 | Chất lượng | Report `lab10.eval` (mã lần chạy) + bảng soát lỗi (Phiếu B mục B2) | Đối chiếu ngưỡng đã ký, regression và slice kho/hãng. | Chưa | Chưa nhận mã base/report và bảng B2 hoàn tất từ máy A. | Vũ Nguyễn Hoàng Minh |
+| 2 | Dữ liệu | Bản đồ dữ liệu (Phiếu B mục B3, câu 2.3): trường nào là nguồn sự thật, trường nào là bản sao | Xác minh nguồn tracking, ledger, policy và xử lý dữ liệu thiếu. | Chưa | B3 đã có bản đồ/drift; còn cần xác minh nguồn dữ liệu thực trước pilot. | Nguyễn Quang Đạo |
+| 3 | Bảo mật | Một vòng HAZOP với guideword PERTURBED (Phiếu B mục B4): chữ nào đi vào model mà không do LogiX viết | Ticket/checkout_note không thành lệnh; payload không mang dữ liệu ngoài allowlist. | Chưa | B4 H4 và dòng dữ liệu bên thứ ba; chưa có test/trace chứng minh chặn. | Bùi Thế Anh |
+| 4 | Quyền hạn | `config/switches.json` + guard trước lệnh ghi; thẻ S2, S8 có thêm mục mức kiểm soát (Phiếu C mục C3) | Kiểm quyền, approval đúng đối tượng/còn hạn và diễn tập công tắc dừng. | Chưa | B4 H1–H3 là đề xuất; D không kiểm config và chưa có bằng chứng diễn tập. | Vũ Nguyễn Hoàng Minh |
+| 5 | Hiệu năng, hạ tầng | Đội tự ước tính; HAZOP guideword INCAPABLE: LLM không trả lời thì sao; số người duyệt và số ca mỗi giờ |Kiểm tải dồn, timeout/retry; công suất người duyệt bám 6 ca/người/giờ. | Chưa | B4 H5 và tình huống 14 ca cho thấy rủi ro cần thử; chưa có phép đo tải thật. | Vũ Nguyễn Hoàng Minh |
+| 6 | Chi phí | Khối "kinh doanh và vận hành" của report: chi phí mỗi ticket so với làm tay, ROI, tiền LLM ticket đắt nhất; `config/operating_gates.json` mục `business` |Tính đủ tiền máy, công duyệt/kiểm lại, phí trực, ROI và ngân sách ngày. | Chưa | B7.4 có phương án của C; chưa có report kiểm chi phí toàn phần và đối chiếu với tiêu chí đã ký. | Nguyễn Quang Đạo |
+| 7 | Vận hành | Runbook (Phiếu B mục B7.5–B7.6) + `config/operating_gates.json` mục `operations` (PIC, người duyệt, số người trực, điều kiện dừng, kênh báo tin) + metric trong `monitors.py` |Có PIC, kênh báo, điều kiện dừng, thời hạn phản ứng và đường xử lý ticket đang chờ. | Chưa | B7.5–B7.6 chưa hoàn thiện; Phiếu A câu 1.4 mới là thiết kế telemetry. | Đàm Tuấn Linh |
+| 8 | Con người, pháp lý | Bên thứ ba (hãng, tài xế, shop, người nhận quà, người đứng tên duyệt); `config/operating_gates.json` mục `legal`; thẻ S6, S7, S8 có mục riêng ở Phiếu C mục C3 |Giảm dữ liệu gửi hãng, có căn cứ quy lỗi, quy trình khiếu nại/đối soát và người duyệt đúng quyền. | Chưa | B4 nêu rủi ro; staff xác định Hạnh/Tùng/Oanh; chưa có bằng chứng kiểm đầu ra và quy trình được duyệt. | Đàm Tuấn Linh |
+| 9 | Quyết định | Câu tiêu chí (Phiếu A mục A4) + hash Bản tiêu chí đã ký + quyết định Gate 1 (Phiếu B mục B8, Phiếu C mục C12) |Quyết định v1/v2 khớp tiêu chí đã ký và report; không Tiếp tục khi còn ngưỡng bắt buộc chưa đạt. | Chưa | B8 còn chờ report/quyết định; D chưa kiểm hash/nhật ký và không tự chạy lệnh chính thức. | Nguyễn Quang Đạo |
 
 Ô "Chưa" có rủi ro cao → chuyển thành một dòng Risk register (Phiếu C mục C10).
 
@@ -251,11 +254,15 @@ Bốn lăng kính (bắt buộc đủ cả bốn; dự án AI hay chết ở ba 
 
 | Lý do thất bại (viết ở thì quá khứ) | Lăng kính | Kiểm được hôm nay? (trace / data / config nào) | Thành cổng phòng ngừa nào (code hay config) / hay vào risk register |
 |---|---|---|---|
-| | Kỹ thuật | | |
-| | Kinh doanh | | |
-| | Con người và vận hành | | |
-| | Pháp lý | | |
-| | | | |
+| Trợ lý đã quy lỗi cho hãng của kiện đầu thay vì kiện gây trễ, hoặc quy lỗi khi nguyên nhân còn thiếu. | Kỹ thuật | lab10/agent.py nhánh do_fault; data/world.json → orders[].parcels; B4 H1–H3. Chờ A/B cung cấp trace. | ★ G1: kiểm căn cứ theo đúng kiện và policy trước file_carrier_fault. |
+| Pilot đã tốn hơn làm tay vì ca chuyển người và kiểm lại tăng, dù tiền LLM từng ticket còn thấp. | Kinh doanh | ops_facts: công 10.000đ/ca, phí trực thêm 30.000đ/ca; cần report cost_per_ticket/ROI từ A. | Risk register: C đối chiếu chi phí toàn phần, phối hợp G2 để chọn phạm vi có hiệu quả. |
+| Hàng chờ đã vượt SLA vì lượng ca dồn vào một người duyệt có công suất 6 ca/giờ. | Con người và vận hành | B4 tình huống 14 ca; ops_limits.review_sla_minutes = 60. Chưa có số tải thực. | ★ G2: bố trí người theo tải, cảnh báo hàng chờ và phương án gọi thêm/thu hẹp; không thu hẹp về 0. |
+| Trợ lý đã chuyển nguyên văn ghi chú và liên hệ người nhận quà sang hãng, làm lộ dữ liệu không cần thiết. | Pháp lý | lab10/agent.py tạo customer_note/recipient_contact; B4 dòng dữ liệu bên thứ ba. Chờ kiểm payload thực xuất. | ★ G3: allowlist dữ liệu trước notify_carrier, loại nội dung tự do/liên hệ không cần thiết và kiểm dữ liệu lồng nhau. |
+| Một giao dịch ghi lỗi đã bị thực hiện hai lần sau timeout xác nhận khi triển khai thật. | Kỹ thuật và vận hành | B4 H5 là giả thuyết cần kiểm thử lỗi; chưa có trace chứng minh xảy ra. | Risk register: idempotency/đối soát, không tự nhận đã xử lý trong mock. |
+
+**Trạng thái B6:** D chuẩn bị dự thảo để cả bàn thảo luận và xác nhận; ba dấu ★ là đề xuất chọn G1–G3, chưa phải biên bản đã thống nhất hoặc cổng đã triển khai. Repo đã ghi nhận thẻ sự cố khi thực hiện lượt này; không coi bản ghi bổ sung này là bằng chứng được chốt trước khi biết thẻ. Không đọc nội dung thẻ để xây dựng các dòng trên.
+
+**PIC B5:** tên học viên theo TEAM.md, là đề xuất đầu mối hoàn tất bằng chứng; các nhân sự Hạnh/Tùng/Oanh trong world.json là vai vận hành mô phỏng. Các mục Chưa rủi ro cao sẽ được chuyển sang C10 ở bước xử lý sự cố. D dùng Codex để soạn và đối chiếu phần B4–B6; không tạo report, run ID hay xác nhận họp giả.
 
 ---
 
