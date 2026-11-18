@@ -1,0 +1,10 @@
+# Repo dùng LF cho file văn bản để hash MANIFEST (tính trên LF) khớp trên mọi máy.
+* text=auto eol=lf
+
+# Ba file dưới đây được hash trên byte CRLF lúc ký / chốt vòng 1:
+# - config/acceptance_criteria.json  -> sha256 trong acceptance_criteria.lock
+# - config/operating_gates.round1.json, lab10/guards_round1.py -> sha256 trong round1.lock
+# Ép Git checkout bằng CRLF để criteria.status() và checkpoint.status() khớp hash.
+config/acceptance_criteria.json eol=crlf
+config/operating_gates.round1.json eol=crlf
+lab10/guards_round1.py eol=crlf
