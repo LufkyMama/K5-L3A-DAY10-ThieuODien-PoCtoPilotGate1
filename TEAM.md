@@ -99,3 +99,31 @@ Trưởng nhóm · Sản phẩm và kinh doanh (vai C). Phụ trách: điền th
 - Một điều còn chưa chắc: Trên dữ liệu pilot thật ngoài MockLLM, sự biến thiên về độ dài văn bản, tỷ lệ sai sót của tracking DB và thời gian kiểm mẫu thực tế của nhân viên sẽ làm chi phí thực và ROI dịch chuyển bao nhiêu so với mức `4.405đ` / `1.27` trong mô phỏng.
 
 *Dùng AI:* có sử dụng trợ lý AI để rà soát PRD/world data, tính toán đối chiếu chỉ số kinh doanh và soạn thảo câu chữ cho các phần của vai C trong `templates/` và `TEAM.md`; toàn bộ số liệu được kiểm chứng trực tiếp qua `lab10.eval` và `config/`.
+
+## DamTuanLinh-2A202603624
+
+### Phần việc phụ trách
+
+Vận hành và pháp lý (vai D). Phụ trách:
+- Phiếu A (`templates/form-a-criteria.md`): Câu 1.2 (mục A1) và Câu 1.4 (mục A2, cột Telemetry production).
+- Phiếu B (`templates/form-b-evaluation-gates.md`): Câu 2.4 (mục B4 HAZOP vòng 1 và mục B5 Checklist go-live 9 nhóm việc), Câu 2.5 (mục B6 Pre-mortem 4 lăng kính), Câu 2.10 (mục B7.5 Runbook phần 1–3 và mục B7.6 Giờ cao điểm).
+- Cấu hình cổng vận hành và pháp lý (`config/operating_gates.json` → mục `operations` và `legal`).
+- Phiếu C (`templates/form-c-incident.md`): Câu 3.1 (mục C3.5 Mở lại bản đồ dữ liệu cho thẻ S3 và mục C4 HAZOP của thẻ S3), Câu 3.3 (mục C5 Giả định môi trường), Câu 3.7 (mục C9 Fault tree sau khi sửa, mục C10 Risk register, mục C11 Cập nhật checklist 9 nhóm việc và Runbook phần 4–5).
+- Hoàn thiện `submission/submission.json` và rà soát checklist nộp bài.
+
+### Đóng góp cụ thể
+
+- **Khối 1 (Phiếu A):** Xác định mục tiêu đối soát của chị Oanh (`NV-OANH`) và mục tiêu SLA 60 phút / công suất 6 ca/giờ của chị Hạnh (`NV-HANH`); thiết kế telemetry không nhãn cho bước `file_carrier_fault` với cửa sổ trượt 60 phút và ngưỡng báo động `S >= 1`.
+- **Khối 2 (Phiếu B & `operating_gates.json`):** Phân tích HAZOP trên `file_carrier_fault` và 3 thành phần ngoài code (người duyệt, dữ liệu gửi bên thứ ba, ngân sách); lập checklist 9 nhóm việc có PIC; soạn pre-mortem 4 lăng kính nối tới 3 cổng G1–G3; thiết lập `operations` (`pic: NV-TUNG`, `approver_id: NV-HANH`, `reviewers_on_shift: 1`, `max_queue_wait_minutes: 60`, `decision_note: true`, `review_sampling_pct: 10`, 5 điều kiện dừng) và `legal` (chặn 10 trường PII/ghi chú tự do, bắt buộc có `delay_cause`); viết Runbook 1–3 và kịch bản Giờ cao điểm.
+- **Khối 3 (Phiếu C — Thẻ S3):** Mở lại bản đồ dữ liệu chỉ ra sự lệch giữa `index_active` và khoảng hiệu lực `[effective_from, effective_to]` khi sang ngày `2026-12-02` (`REFUND-v4`) cũng như trường hợp `delay_cause = null` (`O-2320-P1`); viết HAZOP 4 dòng cho S3 (bổ sung nhánh `INCAPABLE` vượt trần 2 lỗi/hãng/ngày ở `S3-42`/`S3-43`); cập nhật Fault tree sau khi sửa, thêm 2 dòng Risk register, cập nhật checklist và viết Runbook phần 4–5.
+
+### Bằng chứng
+
+- Commit: `71f8411` (Phiếu A câu 1.2, 1.4), `a9117e4` (Phiếu B mục B4, B5, B6), `8a00d79` (`config/operating_gates.json` mục `operations`/`legal` và Phiếu B mục B7.5, B7.6), `60ee678` (Phiếu C mục C3.5, C4, C5 câu 3.3, C9, C10, C11).
+- Mã lần chạy đối chiếu từ máy chính (A): `R-base-before-20261118-172311-b161aa`, `R-base-prepared-20261118-173617-6203de`, `R-S3-grade-20261118-174246-66cedf` (`R-S3-before-20261118-174246-66cedf`, `R-S3-prepared-20261118-174247-66cedf`, `R-S3-after-20261118-174247-66cedf`), `R-base-after-20261118-174239-66cedf`.
+
+### Exit ticket
+
+- **Một điều học được:** Cổng bằng code chỉ bảo vệ được ở ranh giới lệnh gọi tool; để vận hành an toàn ngoài thực tế cần kết hợp cổng con số (`operating_gates.json`), quy trình đối soát độc lập của con người (`NV-OANH`, `NV-HANH`) và runbook có thời hạn dừng cụ thể (5 phút, do `NV-TUNG` giữ công tắc).
+- **Một điều còn chưa chắc:** Khi dữ liệu gốc trong tracking DB hoặc bảng `policies` bị nhập sai nhưng vẫn hợp lệ về mặt hình thức, cả cổng code lẫn monitor tự động đều không tự phát hiện được ngay mà phải chờ đối soát thực tế với hãng vận chuyển.
+- *Dùng AI:* Sử dụng trợ lý AI để hỗ trợ rà soát cấu trúc phiếu, đối chiếu số liệu trong `data/world.json` và soạn thảo văn bản; mọi con số, mã nhân viên và bằng chứng đều được kiểm tra lại theo dữ liệu và report từ máy chính.

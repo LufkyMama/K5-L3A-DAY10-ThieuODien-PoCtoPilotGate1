@@ -1,12 +1,17 @@
 {
-  "team": "",
-  "members": ["NguyenQuangDao-2A202603614", "DamTuanLinh-2A202603624", "VuNguyenHoangMinh-2A202603541", "BuiTheAnh-2A202603546"],
-  "incident": "",
-  "decision_v1": "",
-  "decision_v2": "",
+  "team": "K5-L3A-DAY10-ThieuODien-PoCtoPilotGate1",
+  "members": [
+    "NguyenQuangDao-2A202603614",
+    "DamTuanLinh-2A202603624",
+    "VuNguyenHoangMinh-2A202603541",
+    "BuiTheAnh-2A202603546"
+  ],
+  "incident": "S3",
+  "decision_v1": "Tiếp tục",
+  "decision_v2": "Tiếp tục",
   "three_lines": {
-    "environment_assumption": "",
-    "reduce_or_prevent": "",
-    "measure_in_pilot": ""
+    "environment_assumption": "Thiết kế cổng của đội giả định bảng `policies` (`effective_from`/`effective_to`), trường `delay_cause` trong tracking DB luôn được cập nhật đúng nguồn sự thật và mọi lệnh ghi lỗi hãng đều đi qua công cụ của trợ lý trong ca để bộ đếm trần `2` lỗi/hãng/ngày có hiệu lực, nhưng thực tế dữ liệu nguồn có thể bị nhập sai hoặc hệ thống khác ghi chồng chéo.",
+    "reduce_or_prevent": "Các cổng ở `pre_guard` và `write_gate` NGĂN hẳn được việc dùng chính sách hết hạn, hoàn sai tiền theo lời khách và ghi lỗi hãng khi thiếu `delay_cause` hợp lệ qua luồng trợ lý; riêng cổng đếm `2` lỗi/hãng/ngày chỉ GIẢM thiệt hại tích lũy (chặn từ lỗi thứ 3 trở đi để người xác nhận) chứ không chứng minh được 2 lỗi đầu đúng nếu bản thân tracking DB sai hoặc có hệ thống ngoài ghi đè.",
+    "measure_in_pilot": "Trước Gate 2 cần đo lại độ trễ và tỉ lệ lỗi thật của LLM không tất định, tỉ lệ sai sót của dữ liệu tracking (`delay_cause`) và bảng `policies` ngoài thực tế, thời gian xử lý/kiểm mẫu thực tế của nhân viên duyệt (thay cho giả định `6` ca/giờ và `0,4` đơn vị ca), cùng số khiếu nại từ các hãng vận chuyển và kế toán đối soát."
   }
 }
