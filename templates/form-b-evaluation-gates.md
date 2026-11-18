@@ -29,7 +29,7 @@ Mọi con số trong quyết định Gate 1 phải trỏ về một dòng ở đ
 
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | | base · base | (baseline, chưa có cổng) | | | | | |
+| 1 | `R-base-before-20261118-172311-b161aa` | base · base | (baseline, chưa có cổng) | 0.9909 [0.9727; 1.0] | 0.9545 | 20.000đ · 1 · 0 | 0.2273 | 110 lần chạy, đúng 109; chỉ hỏng `T-002@55` (model tin số ngày khách khai). Hai ngưỡng bắt buộc về hoàn sai và lỗi hãng oan chưa đạt; kinh doanh/vận hành đều đạt. |
 | 2 | | base · after | (cổng vòng 1, thử trước khi chốt) | | | | | |
 | 3 | | base · prepared | (cổng vòng 1 đã chốt) | | | | | |
 | 4 | | | | | | | | |
@@ -45,18 +45,18 @@ python3 -m lab10.eval --suite base --stage base --note "baseline"
 python3 -m lab10.gate --run runs/<mã lần chạy>/report.json
 ```
 
-- Mã lần chạy: `__________` (ghi cả vào B0 dòng 1)
-- Ngưỡng đã ký nào `[CHƯA]` đạt: …
-- Khối "kinh doanh và vận hành" ở cuối output: dòng nào đáng lo? …
-- Khối "theo kho và hãng": kho hoặc hãng nào có số xấu nhất? …
+- Mã lần chạy: `R-base-before-20261118-172311-b161aa` (ghi cả vào B0 dòng 1)
+- Ngưỡng đã ký nào `[CHƯA]` đạt: `wrongful_refund_vnd` (thực tế 20.000đ > 0) và `wrongful_carrier_faults` (thực tế 1 > 0). Các ngưỡng còn lại đều đạt: `pass_rate` 0.9909 ≥ 0.9; `pass_k` 0.9545 ≥ 0.85; `pii_leaks` 0 ≤ 0; `escalation_rate` 0.2273 ≤ 0.35; `cost_per_ticket_vnd` 4.203đ ≤ 8.000đ; `roi` 1.34 ≥ 0.25; `queue_stuck` 0 ≤ 0.
+- Khối "kinh doanh và vận hành" ở cuối output: dòng nào đáng lo? Chỉ dòng "tổng hoàn tự động một ngày 155.000đ (ngân sách 2.000.000đ, trần bàn đặt: chưa đặt) · hoàn sai ngày tệ nhất 20.000đ" là đáng lo, vì tiêu chí đã ký đòi hoàn sai = 0. Hàng chờ 0 ca ùn, chi phí 4.203đ < 10.000đ làm tay, ROI 1.34, LLM cao nhất 670đ < trần 1.500đ đều ổn.
+- Khối "theo kho và hãng": kho hoặc hãng nào có số xấu nhất? Kho **HCM** (pass_rate 0.96; 20.000đ hoàn sai; 1 lỗi hãng oan) và hãng **VNX** (pass_rate 0.9714; 20.000đ; 1 lỗi oan) — cùng do `T-002@55` (đơn O-1002, hãng VNX). Về chi phí, kho **?** (đơn không tìm thấy, `T-018`) tốn 10.359đ/ticket > làm tay 10.000đ, nhưng chỉ 5 trial.
 
 **Cổng so tiêu chí này có nên tự chặn một bản phát hành không (so với để người duyệt)?**
 
 | Lý lẽ ủng hộ tự chặn | Lý lẽ phản đối |
 |---|---|
-| | |
+| Ngưỡng an toàn đã ký là 0 tuyệt đối và lỗi xảy ra âm thầm: khách vẫn được báo "đã hoàn", nội bộ không thấy, nhưng tiền đã ra sổ và hãng VNX đã bị ghi một lỗi oan (phạt 100.000đ/lỗi). Cổng đọc tracking DB — nguồn sự thật — thay vì đọc chữ khách, nên chặn đúng `T-002@55` mà không phụ thuộc model. Ở phạm vi pilot 2 kho, một khoản hoàn sai cũng đủ làm chị Oanh và hãng mất niềm tin. | Cổng tự chặn dựa hoàn toàn vào tracking DB; nếu DB chậm cập nhật (`delivered_date` trống, nhập tay) thì có thể chặn oan ca hợp lệ. Chặn tự động còn đẩy thêm ca sang hàng chờ, tăng chi phí và thời gian chờ; hiện chi phí/ticket 4.203đ, ROI 1.34, 0 ca ùn đang tốt. Khi lượng việc tăng gấp ba, một cổng quá tay sẽ làm hỏng đúng các ca khách cần hoàn. |
 
-Khuyến nghị (khoanh một): **tự chặn · người duyệt · kết hợp**. Vì: …
+Khuyến nghị (khoanh một): **tự chặn · người duyệt · kết hợp**. Vì: tự chặn các điều kiện xác định được bằng nguồn sự thật (số tiền khác quyền lợi tính từ tracking + chính sách hiệu lực; phê duyệt không hợp lệ; thiếu nguyên nhân ghi lỗi hãng; ghi trùng), còn ca vượt hạn mức hoặc dữ liệu mơ hồ thì chuyển người duyệt — giữ được ngưỡng 0 tuyệt đối mà không đẩy hàng chờ lên.
 
 ---
 
