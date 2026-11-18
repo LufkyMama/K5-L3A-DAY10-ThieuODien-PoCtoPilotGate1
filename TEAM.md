@@ -74,3 +74,28 @@ Kỹ sư cổng 1, giữ máy chính. Sửa `lab10/guards.py`; Phiếu B mục B
 Học được: cổng tốt phải đọc nguồn sự thật (tracking, chính sách theo ngày, sổ cái) thay vì đọc chữ khách; sửa đúng một chỗ vẫn có thể làm hỏng ca đang đúng, nên lần nào cũng phải đo lại bộ nền. Còn chưa chắc: nếu chính tracking DB sai, hoặc máy thiếu gói sự cố S1/S2/S4–S8, thì cổng và `1 integrity` vẫn có điểm mù; cần Coach xác nhận trước khi chọn Tiếp tục.
 
 *Dùng AI:* dùng trợ lý AI để đọc code, soạn nháp cổng và rà câu chữ trong phiếu; mọi con số và dòng trace được kiểm lại từ output thật của máy chính.
+
+## NguyenQuangDao-2A202603614
+
+### Phần việc phụ trách
+
+Trưởng nhóm · Sản phẩm và kinh doanh (vai C). Phụ trách: điền thông tin nhóm trong `TEAM.md`; Phiếu A (A1 câu 1.1, A3 câu 1.5, A4 câu 1.6); bộ tiêu chí `config/acceptance_criteria.json`; Phiếu B (B3 câu 2.3 bản đồ dữ liệu & drift, B7.4 câu 2.9, B8 quyết định v1); `config/operating_gates.json` mục `business`; Phiếu C (C5 câu 3.2 specification, C12 quyết định v2 và ba dòng bắt buộc).
+
+### Đóng góp cụ thể
+
+- Xác lập bộ tiêu chí chấp nhận Gate 1 trước khi chạy đánh giá (`pass_rate_min = 0.90`, `pass_k_min = 0.85`, an toàn = `0`, `escalation_rate_max = 0.35`, `cost_per_ticket_vnd_max = 8000`, `roi_min = 0.25`, `queue_stuck_max = 0`) cùng `decision_rule` cho 4 quyết định và `stop_condition`.
+- Xây dựng bản đồ dữ liệu (B3), phân tích trước kịch bản concept drift ngày `2026-12-01` khi chuyển `REFUND-v3` sang `REFUND-v4`, và thiết lập cổng `business` (`daily_refund_cap_vnd = 1500000`, `cost_budget_per_ticket_vnd = 1500`, `pilot_scope = all 100%`, `roi_min = 0.25`).
+- Đối chiếu chi phí, ROI, hàng chờ và phân khúc kho/hãng ở cả 3 mốc (`base`, `prepared`, `after`) để viết specification câu 3.2, chốt quyết định v1 (`Tiếp tục`), v2 (`Tiếp tục`) và ba dòng bắt buộc cho thẻ S3.
+
+### Bằng chứng
+
+- Commit: `8f60657` (tiêu chí, TEAM.md, cổng `business`, Phiếu A & B), cùng commit hoàn thiện B8, C5 (3.2), C12 và mục cá nhân.
+- Commit ký tiêu chí: `a6416fd`; checkpoint vòng 1: `40708a2c`.
+- Các lần chạy chính thức trên máy chính: `R-base-before-20261118-172311-b161aa`, `R-base-prepared-20261118-173617-6203de`, `R-S3-grade-20261118-174246-66cedf`, `R-S3-after-20261118-174247-66cedf`, `R-base-after-20261118-174239-66cedf`.
+
+### Exit ticket
+
+- Một điều học được: Đặt và ký tiêu chí đo lường cả an toàn lẫn kinh tế–vận hành trước khi đo giúp tránh nới chuẩn theo kết quả, và chính sách thay đổi theo ngày (`concept drift`) có thể làm một trợ lý đang xanh hoàn toàn trên bộ nền thành lỗ ròng nếu không ghim nguồn sự thật.
+- Một điều còn chưa chắc: Trên dữ liệu pilot thật ngoài MockLLM, sự biến thiên về độ dài văn bản, tỷ lệ sai sót của tracking DB và thời gian kiểm mẫu thực tế của nhân viên sẽ làm chi phí thực và ROI dịch chuyển bao nhiêu so với mức `4.405đ` / `1.27` trong mô phỏng.
+
+*Dùng AI:* có sử dụng trợ lý AI để rà soát PRD/world data, tính toán đối chiếu chỉ số kinh doanh và soạn thảo câu chữ cho các phần của vai C trong `templates/` và `TEAM.md`; toàn bộ số liệu được kiểm chứng trực tiếp qua `lab10.eval` và `config/`.
