@@ -64,7 +64,7 @@ Kỹ sư cổng 1, giữ máy chính. Sửa `lab10/guards.py`; Phiếu B mục B
 
 ### Bằng chứng
 
-- Commit: `dc7b7b1` (cổng vòng 1 + B7.1), `a1333a1` (checkpoint + B0 dòng 3), `b214d81` (trần lỗi hãng + C0/C1/C7), `7b744dc` (cập nhật theo grade cuối), `1365c75` (`.gitattributes` giữ byte đã ký/chốt), `c995f05` (mục cá nhân), `0ad7f6b`/`48464a9`/`a514ca9` (bài nộp + manifest).
+- Commit: `dc7b7b1` (cổng vòng 1 + B7.1), `a1333a1` (checkpoint + B0 dòng 3), `b214d81` (trần lỗi hãng + C0/C1/C7), `7b744dc` (cập nhật theo grade cuối), `1365c75` (`.gitattributes` giữ byte đã ký/chốt), `c995f05` (mục cá nhân), `0ad7f6b`/`48464a9`/`a514ca9` (bài nộp + manifest), `0ea7c13` (điền A5 + đồng bộ run ID cuối).
 - Lần chạy: base `R-base-before-20261118-172311-b161aa`; after `R-base-after-20261118-173515-6203de`; prepared `R-base-prepared-20261118-173617-6203de`; S3 grade `R-S3-grade-20261118-210032-89e5b3` (base/prepared/after `R-S3-before-...210037`, `R-S3-prepared-...210037`, `R-S3-after-...210037`); S3 after `R-S3-after-20261118-204807-89e5b3`; base after vòng 2 `R-base-after-20261118-204816-89e5b3`.
 - Phiếu: A5 (A chạy `criteria sign` trên máy chính; C ghi phiếu), B0 dòng 1–3, B1, B7.1, C0 dòng 1–4, C1, C7.
 - Hash: criteria `bacb89e1`, checkpoint `40708a2c`.
