@@ -48,12 +48,12 @@ trợ lý có đang gây thiệt hại cho bên ngoài LogiX không; không có 
 
 | | Offline, cho MỘT bước (câu 1.3) | Telemetry production (câu 1.4) |
 |---|---|---|
-| **Bước / hành vi được đo** | | |
-| **Thước đo** (một câu, có đơn vị) | | |
-| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | | |
-| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | | |
+| **Bước / hành vi được đo** | Bước **ghi lỗi hãng** (tool `file_carrier_fault`): trợ lý quy lỗi giao trễ cho một hãng vận chuyển và một kiện hàng. Chọn bước này vì đây là thông tin đi ra **bên thứ ba**: hãng bị trừ tiền, tài xế bị ghi lỗi, và chị Oanh phải khớp sổ lỗi với hãng mỗi tuần. Code cho thấy hai chỗ dễ sai: khi DB không ghi nguyên nhân, trợ lý mặc định đổ lỗi cho hãng (`cause = ... or "CARRIER"`). Với đơn nhiều kiện, trợ lý lấy hãng của **kiện đầu tiên** (`parcels[0]`), không phải kiện bị trễ. | |
+| **Thước đo** (một câu, có đơn vị) | **Tỉ lệ ghi lỗi hãng sai (%)**: trong số dòng lỗi hãng trợ lý đã ghi, bao nhiêu phần trăm có cặp (hãng, kiện) không đúng với nhãn. | |
+| **Dữ liệu** (lấy ở đâu, bao nhiêu, ai gán nhãn) | Lấy sự kiện `tool` có `tool = "file_carrier_fault"` (các trường `carrier_id`, `parcel_id`, `delay_days`) trong `runs/<mã lần chạy>/traces/`, kèm sự kiện `tracking` (`parcels[]`, `cause_recorded`) để biết vì sao sai. Nhãn đúng là trường `label.faults` (danh sách cặp `[carrier_id, parcel_id]`) trong `data/tickets.jsonl`. Bộ nền gồm 22 ticket × 5 seed = 110 lần chạy; 11/22 ticket có nhãn lỗi hãng (ví dụ T-001 → `[GHSH, O-1001-P1]`), 11 ticket còn lại có nhãn rỗng (không được ghi lỗi hãng). Nhãn do người ra đề gán từ tracking DB và nguyên nhân trễ đã ghi; ngoài thực tế, đội đối soát (chị Oanh) xác nhận nhãn bằng biên bản đối chiếu với hãng. | |
+| **Cách tính** (công thức, mẫu số, cách xử lý ca thiếu dữ liệu) | **Tỉ lệ sai = (số dòng sai) / (tổng số dòng `file_carrier_fault` đã ghi) × 100%.** Một dòng là **sai** khi cặp (`carrier_id`, `parcel_id`) của dòng đó không có trong `label.faults` của ticket, kể cả trường hợp ticket có nhãn rỗng. Nếu cùng một kiện bị ghi hai lần thì dòng thứ hai cũng tính là sai. **Mẫu số** chỉ đếm những dòng thực sự được ghi; lần ghi bị cổng chặn (có sự kiện `legal_gate` hoặc `write_gate` deny, không có dòng `tool`) không tính vào mẫu số. **Lần chạy không tới bước ghi lỗi** (bị escalate, từ chối, hoặc `do_fault = false`) bị loại khỏi mẫu số và đếm riêng. **Đếm riêng thêm số lỗi bị bỏ sót**: số cặp trong `label.faults` mà trợ lý không ghi; con số này không cộng vào tỉ lệ sai. Nếu mẫu số bằng 0, ghi "không đo được" chứ không ghi 0%. | |
 | **Khung thời gian / ngưỡng báo động** | (không áp dụng) | |
-| **Điểm mù** (thước đo này KHÔNG thấy gì) | | |
+| **Điểm mù** (thước đo này KHÔNG thấy gì) | (1) Nhãn chỉ có cặp (hãng, kiện), **không có số ngày trễ**: ghi đúng hãng, đúng kiện nhưng sai `delay_days` (ví dụ lấy số ngày khách tự khai thay vì DB) thì vẫn bị tính là đúng. (2) Không thấy trường hợp **chính tracking DB sai** hoặc nguyên nhân trễ trong DB sai, vì nhãn cũng dựa trên DB. (3) Không thấy dữ liệu cá nhân bị gửi cho hãng ở bước `notify_carrier` ngay sau đó. (4) Không thấy lỗi ở đơn nhiều kiện nếu bộ test ít đơn nhiều kiện; bộ nền hiện chỉ có một đơn như vậy (O-1013: P1 của GHSH, P2 của LGX). | |
 
 **Ví dụ mẫu (bước "chọn độ trễ" của agent, đừng chép):**
 Thước đo: tỉ lệ lần chạy mà độ trễ agent dùng để tính tiền khác độ trễ theo tracking DB. Dữ liệu: sự kiện `proposal.delay_days_used`
