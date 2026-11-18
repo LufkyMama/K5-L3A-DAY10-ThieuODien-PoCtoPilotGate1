@@ -407,22 +407,22 @@ bao nhiêu thời gian? (3) Có phần nào của dự án không nên làm ti�
 
 | | **v1** (phút 105–115, TRƯỚC khi nhận thẻ sự cố) |
 |---|---|
-| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | `a6416fd` |
-| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | `40708a2c` |
+| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | `a6416fd` (signed_at `2026-11-18T17:02:34`) |
+| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | `40708a2c` (`taken_at: 2026-11-18T17:36:10`) |
 | Mã lần chạy dùng làm bằng chứng | bộ nền, mốc base: `R-base-before-20261118-172311-b161aa` · bộ nền với cổng vòng 1 (prepared): `R-base-prepared-20261118-173617-6203de` |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | **Không**. Hàng chờ 0 ca ùn; chi phí 4.202đ < 10.000đ; ROI 1.38 > 0.25; tổng hoàn tự động 155.000đ < trần 1.500.000đ; PII 0. |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | Ở prepared mọi kho/hãng đều pass 1.0. Kho **?** (đơn không tìm thấy `T-018`) có chi phí 10.359đ/ticket > làm tay, nhưng chỉ 1 ticket/ngày và bị chuyển người; kho HCM 2.567đ, HN 1.993đ, CT 590đ, DN 4.586đ. Nếu chỉ nhìn kho "?", quyết định **không đổi** vì đây là ca thiếu đơn, không phải phân khúc doanh thu. |
-| Quyết định (khoanh một) | **Tiếp tục** |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-base-prepared-20261118-173617-6203de`: pass_rate **1.0**, pass_k **1.0**, wrongful_refund_vnd **0**, wrongful_carrier_faults **0**, pii_leaks **0** — cả 5 chỉ số bắt buộc đều đạt. |
-| Bằng chứng 2 | `R-base-prepared-20261118-173617-6203de`: cost_per_ticket **4.202đ** ≤ 8.000đ; ROI **1.38** ≥ 0.25; queue_stuck **0**; auto_refund_day_max **155.000đ** ≤ 1.500.000đ — cả 3 ngưỡng business_ops đều đạt. |
-| Bằng chứng 3 | So với base `R-base-before-20261118-172311-b161aa`: pass 0.9909 → 1.0; cổng vòng 1 sửa đúng `T-002@55` (20.000đ hoàn sai + 1 lỗi VNX oan → denied, 0 lỗi) và **không gây regression** trên bộ nền. |
-| Khớp dòng nào trong `decision_rule` đã ký? | "**Tiếp tục**: Tất cả 5 chỉ số bắt buộc và 3 ngưỡng business_ops đều đạt trên cả bộ nền lẫn gói sự cố, đồng thời không có dòng vượt trần nào trong báo cáo." |
-| Nếu Thu hẹp: cắt phần nào, vì sao | Không áp dụng. |
-| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | Không áp dụng. |
-| Nếu Dừng: bài học ghi lại | Không áp dụng. |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | `không` (`violations: []`; hàng chờ 0 ca ùn, chờ lâu nhất 0.0 phút, chi phí 4.202đ ≤ 8.000đ, ROI 1.38 ≥ 0.25, hoàn tự động tối đa 155.000đ ≤ 1.500.000đ, PII 0, lỗi oan 0). |
+| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | Kho `?` (đơn không tồn tại `T-018`, 5 trial): `10.359đ/ticket` (`> 10.000đ` làm tay); trong 4 kho thật, cao nhất là `DN` (`4.586đ/ticket`, vẫn rất thấp so với `10.000đ`). Tất cả các kho và hãng (`DNB`, `GHSH`, `LGX`, `MKD`, `VNX`) đều đạt `pass_rate = 1.0`, hoàn sai 0đ, lỗi oan 0, PII 0. Quyết định **không đổi**, vì `T-018` là đơn giả/không tồn tại bắt buộc chuyển người duyệt và toàn bộ kho thật đều có lãi cao. |
+| Quyết định (khoanh một) | **Tiếp tục** · Thu hẹp · Cải tiến thêm · Dừng |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-base-prepared-20261118-173617-6203de`: cả 5 chỉ số bắt buộc đạt 100% — `pass_rate = 1.0 [1.0; 1.0]` (`≥ 0.90`), `pass_k = 1.0` (`≥ 0.85`), `wrongful_refund_vnd = 0đ` (`≤ 0`), `wrongful_carrier_faults = 0` (`≤ 0`), `pii_leaks = 0` (`≤ 0`); `escalation_rate = 0.2273` (`≤ 0.35`). |
+| Bằng chứng 2 | Kinh doanh & vận hành (`R-base-prepared-20261118-173617-6203de`): `cost_per_ticket_vnd = 4.202đ` (`≤ 8.000đ`), `ROI = 1.38` (`≥ 0.25`), `queue_stuck = 0` (`≤ 0`), `wait_max_min = 0.0` phút (`≤ 60`), `auto_refund_day_max_vnd = 155.000đ` (`≤ 1.500.000đ`), `llm_cost_max = 670đ` (`≤ 1.500đ`). |
+| Bằng chứng 3 | So với mốc `base` (`R-base-before-20261118-172311-b161aa`: `pass_rate = 0.9909`, hoàn sai `20.000đ`, `1` lỗi oan VNX ở `T-002@55`): cổng vòng 1 (`40708a2c`) đã chặn triệt để `T-002@55` về 0đ/0 lỗi và không gây regression trên bộ nền (110/110 đạt). |
+| Khớp dòng nào trong `decision_rule` đã ký? | `"Tiếp tục": "Tất cả 5 chỉ số bắt buộc và 3 ngưỡng business_ops đều đạt trên cả bộ nền lẫn gói sự cố, đồng thời không có dòng vượt trần nào trong báo cáo."` *(Tại thời điểm v1 trước khi có gói sự cố, tất cả chỉ số bắt buộc, `business_ops` và các trần đều đạt trên bộ nền mốc `prepared`).* |
+| Nếu Thu hẹp: cắt phần nào, vì sao | Không áp dụng (chọn Tiếp tục). |
+| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | Không áp dụng (chọn Tiếp tục). |
+| Nếu Dừng: bài học ghi lại | Không áp dụng (chọn Tiếp tục). |
 | Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | Bộ nền 22 ticket chỉ dùng MockLLM tất định và các ca hợp lệ bình thường; chưa đo được các ca tấn công đối kháng (prompt injection, khai man), biến cố tăng tải gấp 3 ở giờ cao điểm, hay tác động khi chính sách chuyển từ `REFUND-v3` sang `REFUND-v4` ngày `2026-12-01`. |
 | Ngày quyết định lại (trừ khi Dừng) | `2026-12-01` |
-| PIC ký | `Sản phẩm và Kinh doanh (C) · Giám sát vận hành (NV-TUNG)` |
+| PIC ký | `Nguyễn Quang Đạo (Sản phẩm & Kinh doanh) · Lê Thanh Tùng (NV-TUNG)` |
 
 Xong v1 thì lưu và đẩy một bản (sau mốc này không sửa cột v1):
 

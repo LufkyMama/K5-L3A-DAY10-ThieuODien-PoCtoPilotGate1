@@ -220,9 +220,9 @@ Mở lại Phiếu B mục B3. Ghi ở đây những dòng đổi so với vòng
 
 | Trường / bảng | Vòng 1 bàn đã coi là (nguồn sự thật / bản sao / chưa hỏi) | Sau khi đọc thẻ thì thấy | Ảnh hưởng tới tiền hay lỗi hãng thế nào |
 |---|---|---|---|
-| `policies.index_active` vs `policies.effective_from/effective_to` | **Nguồn sự thật**: agent đọc `index_active` để chọn chính sách. | `index_active` là **bản sao** do batch cập nhật; nguồn sự thật là ngày hiệu lực. `REFUND-v4` hiệu lực `2026-12-01` nhưng `index_active = false`; `REFUND-v3` hết hạn `2026-11-30` nhưng vẫn `true`. | Dùng v3 sau 30/11: từ chối 18.000đ của khách trễ 2 ngày (`S3-02@11`) và vẫn ghi lỗi `FORCE_MAJEURE` (`S3-01@11`), trong khi v4 bỏ `FORCE_MAJEURE` khỏi `fault_causes`. |
-| `orders[].parcels[].delay_cause` | **Nguồn sự thật**: tracking được coi là luôn có nguyên nhân; agent tự gán `CARRIER` khi trống. | Trường có thể trống: `S3-20@11` có `cause_recorded: false`; agent vẫn `do_fault: true` và ghi lỗi MKD. | Ghi lỗi oan 120.000đ cho MKD/tài xế; cần coi "trống" là **chưa xác định**, không suy đoán. |
-| `ops_limits.max_auto_strikes_per_carrier_per_day` | **Chưa hỏi** ở vòng 1 (không có trong bản đồ dữ liệu). | Có trần **2 lỗi/hãng/ngày** nhưng agent không đếm; ngày `S3-LOAT` ghi 4 lỗi MKD (`S3-40`…`S3-43`). | Hãng bị phạt 4 lần trong ngày, đẩy nhanh ngưỡng đình chỉ; cần đếm và chặn lỗi thứ 3 trở đi. |
+| `policies[].effective_from`, `effective_to`, `as_of` | Nguồn sự thật để xác định chính sách hiệu lực; `index_active` là bản sao/cờ vận hành dễ lệch. | Thẻ S3 có `as_of = 2026-12-02`: REFUND-v4 hiệu lực từ 01/12 dù `index_active = false`; REFUND-v3 đã hết 30/11 dù cờ vẫn `true`. | Chọn theo cờ cũ làm khách trễ 2 ngày bị từ chối và có thể áp sai trần tự động; chọn theo khoảng ngày làm v4 được dùng. Bằng chứng A ghi ở C1: `S3-01@11`, base dùng v3, prepared ghim v4. |
+| `policies[].fault_causes` của policy hiệu lực | Nguồn sự thật về nguyên nhân được phép quy lỗi hãng. | REFUND-v4 chỉ cho `CARRIER`; `FORCE_MAJEURE` đã bị bỏ sau 01/12. | Dùng danh sách v3 sẽ phạt oan hãng vì bão. Prepared giảm lỗi hãng oan 35 → 10 nhưng chưa xử lý trần theo hãng/ngày. |
+| `orders[].parcels[].delay_cause` | Nguồn tracking về nguyên nhân; vòng 1 chưa nêu rõ cách xử lý `null`. | S3-20/O-2320-P1 có `delay_cause = null`: thiếu bằng chứng không đồng nghĩa `CARRIER`. | Mặc định lỗi hãng khi trường trống tạo lỗi chìm; gate phải từ chối ghi lỗi và chuyển xác minh, không tự suy diễn. |
 
 ---
 
@@ -232,14 +232,14 @@ Mở lại Phiếu B mục B3. Ghi ở đây những dòng đổi so với vòng
 
 *Mục riêng, không ghi đè HAZOP vòng 1 ở Phiếu B mục B4. Năm guideword và nghĩa của chúng: xem Phiếu B mục B4.*
 
-Tool chọn phân tích: `file_carrier_fault`
+Tool chọn phân tích: `file_carrier_fault`. Người ghi: Đàm Tuấn Linh — DamTuanLinh-2A202603624. Nguồn: thẻ/data S3 và các mã chạy/trace đã được A ghi ở C0–C1; máy này không có Python nên không tạo trace mới.
 
 | Tham số / dòng dữ liệu | Guideword (WRONG / INVALID / INCOMPLETE / PERTURBED / INCAPABLE) | Lệch cụ thể (mã ticket, trường dữ liệu của thẻ) | Hậu quả, cho ai | Hiện có gì ngăn? | Gate đề xuất + tầng |
 |---|---|---|---|---|---|
-| `parcel.delay_cause` | INCOMPLETE | `S3-20@11`: tracking có `cause_recorded: false`; agent tự gán `CARRIER` và ghi lỗi `MKD`, `O-2320-P1`, 3 ngày. | MKD/tài xế TX-MKD-05 bị phạt 120.000đ; khách vẫn được hoàn 22.000đ nhưng hãng bị quy lỗi không căn cứ. | Cờ `legal.carrier_fault_requires_recorded_cause` (nay đã bật) và cổng code `_gate_carrier_fault`. | **G2 — chặn**: deny khi `carrier_at_fault` sai; refund vẫn đi tiếp. |
-| `policy_id` / `policy.fault_causes` | INVALID | `S3-01@11`: base dùng `REFUND-v3` (`pinned: false`), `FORCE_MAJEURE` vẫn nằm trong `fault_causes`; v4 hiệu lực `2026-12-01` bỏ nguyên nhân này. | MKD bị ghi lỗi 120.000đ trái phụ lục chính sách mới. | Chỉ có cờ `index_active` — bản sao batch, không đáng tin. | **Cổng 1a — chặn**: `pre_guard` ghim `policy_id` theo `effective_from/effective_to`; G2 kiểm lại `fault_causes`. |
-| `parcel_id` / `carrier_id` | WRONG | `agent.py` luôn lấy `parcels[0]` để ghi lỗi, không lấy kiện trễ nhất. Các đơn S3 đều một kiện nên **chưa thấy trên trace**; đơn nhiều kiện như `T-013` (P1 trễ, P2 đúng hẹn) cho thấy nhánh này có thật. | Hãng/tài xế của kiện đúng hẹn bị quy lỗi; chị Oanh phải sửa đối soát. | Không có — `WriteTools.file_carrier_fault` chỉ ghi ID nhận được. | **G2 — chặn**: `ticket_parcel` + `db_delay_days` + `modify` về đúng kiện/hãng. |
-| `ops_limits.max_auto_strikes_per_carrier_per_day` | PERTURBED / INCAPABLE | `S3-42@11` và `S3-43@11` là lỗi MKD thứ 3, thứ 4 trong ngày `S3-LOAT`; trần Ops là 2 lỗi/hãng/ngày. | MKD bị phạt 4 × 120.000đ, đẩy nhanh ngưỡng đình chỉ 10 lỗi/7 ngày. | Không có bộ đếm; `ops_limits` chỉ là con số, agent không đọc. | **Trần lỗi — giới hạn thiệt hại**: đếm `fault_rows(carrier_id)` và deny lỗi thứ 3 trở đi; NV-OANH xác nhận với hãng. |
+| `policy_id` / policy hiệu lực | INVALID | `as_of = 2026-12-02` nhưng hệ thống còn dùng REFUND-v3 đã hết 30/11; trace `S3-01@11` trong C1 ghi base `pinned: false`, prepared ghim v4. | MKD bị ghi lỗi do bão; khách trễ 2 ngày có thể bị từ chối theo ngưỡng cũ. | Vòng 1 có pre_guard chọn policy theo ngày, nên prepared đã giảm 25/35 lỗi oan. | Chặn ở `pre_guard`: chọn duy nhất policy có `effective_from <= as_of <= effective_to`; không dùng riêng `index_active`; thiếu/đụng nhiều policy thì escalate. |
+| `delay_cause` của kiện | INCOMPLETE | `S3-20` / `O-2320-P1` có `delay_cause = null`; không có căn cứ nói lỗi hãng. | MKD/tài xế có thể bị phạt 120.000đ/lỗi dù tracking chưa kết luận. | Vòng 1 đã có gate deny khi thiếu căn cứ theo C7 [3]; cần giữ và đo regression. | Chặn ở `write_gate(file_carrier_fault)`: chỉ ghi khi nguyên nhân của đúng kiện thuộc `fault_causes` policy hiệu lực; null thì deny/escalate để người xác minh. |
+| `carrier_id`, `parcel_id`, `delay_days` | WRONG | Agent có thể lấy `parcels[0]` thay vì kiện gây trễ hoặc dùng số ngày khách khai; thẻ yêu cầu soi tracking từng kiện. | Ghi oan hãng/tài xế hoặc ghi sai mức độ, làm sai đối soát. | `_gate_carrier_fault` hiện modify về `ticket_parcel`, `carrier_at_fault`, `db_delay_days` theo C7 [3]. | Chặn/modify trước ghi từ tracking DB; monitor `carrier_fault_delay_mismatch_rate > 0` báo đỏ và Tùng tắt tool. |
+| số lỗi đã ghi cho cùng hãng trong ngày | INCAPABLE | `S3-42`/`S3-43`: MKD nhận lỗi thứ 3 và 4 dù `max_auto_strikes_per_carrier_per_day = 2`; nhánh này chưa thấy khi viết HAZOP vòng 1. | Hãng bị phạt tích lũy, quan hệ đối tác xấu đi; prepared còn 10 lỗi oan. | Bản prepared chưa đếm trần; code after đếm `fault_rows(carrier_id)` và deny từ lỗi thứ 3. | Giới hạn thiệt hại ở write_gate; lỗi thứ 3 trở đi chuyển người xác nhận. Monitor/đối soát theo hãng/ngày để phát hiện đường ghi khác. |
 
 Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chưa thấy trên trace** lúc viết.
 
@@ -251,15 +251,15 @@ Bắt buộc: ít nhất ba dòng, trong đó **một dòng là nhánh bàn chư
 
 ### Câu 3.2 · Một specification mà nếu bị vi phạm thì gây ra tác hại trên thẻ
 
-Kiểm được bằng code hoặc bằng một con số trong report: **Mọi lệnh `file_carrier_fault` chỉ được ghi khi (a) `policy_id` là phiên bản hiệu lực tại `ctx.as_of`, (b) `delay_cause` của đúng kiện nằm trong `fault_causes`, và (c) số lỗi tự động cho một hãng trong ngày ≤ 2.**
+Kiểm được bằng code hoặc bằng một con số trong report: Hệ thống chỉ được phép áp dụng chính sách có khoảng hiệu lực chứa ngày hiện tại (`effective_from <= as_of <= effective_to`), chỉ ghi lỗi cho hãng khi tracking của đúng kiện trễ có `delay_cause` nằm trong `fault_causes` của chính sách hiệu lực đó (loại `FORCE_MAJEURE` từ `2026-12-01` và từ chối khi `delay_cause = null`), và tổng số lỗi tự động ghi cho một hãng trong ngày không vượt quá `ops_limits.max_auto_strikes_per_carrier_per_day` (`2` lỗi/hãng/ngày); trên bộ thử S3, `wrongful_carrier_faults = 0`, `wrongful_refund_vnd = 0` và `under_refund_vnd = 0`.
 
-Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): `pre_guard` (ghim `policy_id`), `_gate_carrier_fault` (`H.carrier_at_fault` + đếm `fault_rows(carrier_id)`), report `wrongful_carrier_faults` và monitor `max_carrier_strikes_per_day`; trace `S3-01@11`, `S3-20@11`, `S3-42@11`.
+Kiểm bằng gì (hàm trong `guards.py`, dòng report nào): Kiểm bằng code qua `pre_guard` (ghim `policy_id = _policy(ctx)["policy_id"]` theo `H.effective_policy`), `_gate_refund`, và `_gate_carrier_fault` (`H.carrier_at_fault` và `len(ctx.tools.fault_rows(carrier_id=...)) >= cap`) trong `lab10/guards.py`; kiểm bằng số liệu qua các dòng `wrongful_carrier_faults`, `wrongful_refund_vnd`, `under_refund_vnd`, `pass_rate` trong report `lab10.eval` / `lab10.grade --incident S3`.
 
 ### Câu 3.3 · Một giả định về môi trường mà người thiết kế đã ngầm tin, nhưng nhiều khả năng sai ngoài thực tế
 
-Giả định (thứ nằm NGOÀI phần mềm): **Tracking DB luôn ghi đủ `delay_cause`, và batch `index_active` của bảng chính sách được cập nhật đúng ngày hiệu lực; sổ giao của hãng khớp với tracking của LogiX.**
+Giả định (thứ nằm NGOÀI phần mềm): đội thiết kế đã ngầm tin rằng chủ chính sách sẽ cập nhật `index_active` đúng thời điểm, tracking luôn ghi `delay_cause` đầy đủ trước khi trợ lý xử lý, và các lỗi của cùng hãng trong ngày đến đủ thưa để không cần người xác nhận từ lỗi thứ 3.
 
-Vì sao có thể sai: `S3-20@11` có `cause_recorded: false`; `REFUND-v4` hiệu lực `2026-12-01` nhưng `index_active: false`; hãng có thể ghi nhận ngày giao/nguyên nhân khác hoặc gửi sổ giao trễ. Khi assumption sai, cổng có thể chặn oan hoặc bỏ sót lỗi.
+Vì sao có thể sai: chính sách có thể đổi lúc giao ca hoặc cờ chỉ mục cập nhật trễ; máy quét/điều phối có thể chưa kết luận nguyên nhân khi ticket tới; bão hoặc sale làm nhiều đơn của một hãng dồn trong một ngày. S3 chứng minh cả ba: ngày 02/12 v4 đã hiệu lực nhưng cờ v3 còn hoạt động, `O-2320-P1.delay_cause = null`, và MKD có chuỗi S3-40…S3-43 vượt trần 2 lỗi/ngày. Vì vậy gate phải dựa vào khoảng hiệu lực, xử lý `null` an toàn và đếm trạng thái theo hãng/ngày.
 
 ---
 
@@ -355,20 +355,20 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [gate … hỏng]` và ghi:
 
 ```
-[ĐỈNH] MKD bị phạt oan 120.000đ/lỗi; khách bị từ chối/hoàn thiếu
+[ĐỈNH] Khách bị xử lý sai hoặc hãng MKD nhận lỗi/phạt oan (đo: hoàn sai, under-refund, wrongful_carrier_faults)
  └─ HOẶC
- ├─ [1] Dùng REFUND-v3 sau 30/11            VÀ [pre_guard ghim policy hỏng]
- ├─ [2] Ghi lỗi khi thiếu cause/sai kiện      VÀ [write_gate file_carrier_fault hỏng]
- ├─ [3] Lỗi thứ 3 trở đi trong ngày          VÀ [trần 2 lỗi/hãng/ngày hỏng]
- └─ [4] Còn hở: tracking DB sai / bảng policies sai — không gate nào thấy trước
+ ├─ [1] policy hết hiệu lực vẫn được dùng VÀ [pre_guard chọn policy theo ngày hỏng]
+ ├─ [2] tiền bị tính từ lời khách/approval sai/retry VÀ [write_gate issue_refund hỏng]
+ ├─ [3] ghi sai kiện hoặc thiếu nguyên nhân VÀ [write_gate file_carrier_fault hỏng]
+ └─ [4] lỗi thứ 3+ cùng hãng vẫn tự ghi VÀ [cổng đếm trần theo hãng/ngày hỏng]
 ```
 
 | Nhánh | Gate (hàm trong `guards.py` / khoá config / metric trong `monitors.py`) | Tầng gate (phát hiện / chặn / giới hạn thiệt hại / vận hành) | Giảm hay ngăn? Vì sao | Nhánh còn hở |
 |---|---|---|---|---|
-| [1] | `pre_guard` → `_policy()` + `Verdict.allow(policy_id=...)` theo `effective_policy` | Chặn | **Ngăn hẳn** việc dùng sai phiên bản tại thời điểm chạy; không đọc chữ khách. | Bảng `policies` hoặc `as_of` bị nhập sai. |
-| [2] | `write_gate/file_carrier_fault` → `_gate_carrier_fault`: `ticket_parcel`, `db_delay_days`, `carrier_at_fault`, `modify` kiện/hãng/delay, `deny` khi thiếu cause. | Chặn | **Ngăn hẳn** lỗi oan do sai kiện/thiếu nguyên nhân. | Chính `tracking DB` ghi sai `delay_cause` hoặc sai kiện. |
-| [3] | `write_gate/file_carrier_fault` → đếm `fault_rows(carrier_id=...)` và so `ops_limits.max_auto_strikes_per_carrier_per_day` | Giới hạn thiệt hại · vận hành | **Ngăn** lỗi thứ 3 trở đi trong ngày; vẫn cho refund và chuyển NV-OANH xác nhận với hãng. | Nhiều hãng cùng ngày, hoặc fault đến từ đường ghi khác; monitor chỉ phát hiện sau. |
-| [4] | `max_carrier_strikes_per_day` + `carrier_fault_delay_mismatch_rate` | Phát hiện | **Giảm** thời gian phát hiện; không sửa được dữ liệu gốc. | Tracking/policy sai vẫn có thể lọt nếu số lượng và delay khớp. |
+| [1] | `pre_guard` + `H.effective_policy(..., as_of)` | Chặn | Ngăn dùng policy sai tại thời điểm chạy nếu bảng policy/as_of đúng; after đạt pass 1,0. | Chính dữ liệu policy hoặc đồng hồ/as_of sai; hai policy chồng hiệu lực. |
+| [2] | `_gate_refund`: tính lại entitlement, kiểm approval, ledger trùng, ép payer | Chặn + giới hạn thiệt hại | Ngăn các đường đã biết từ ticket/approval/retry; report after có hoàn sai 0đ. | Tracking/ledger nguồn sai hoặc đường ghi ngoài tool. |
+| [3] | `_gate_carrier_fault` + legal `carrier_fault_requires_recorded_cause` + monitor mismatch | Chặn + phát hiện | Ngăn ghi khi thiếu căn cứ/sai kiện qua tool; after có lỗi oan 0. | Tracking ghi sai nguyên nhân nhưng vẫn hợp lệ hình thức; cần đối soát hãng. |
+| [4] | đếm `fault_rows(carrier_id)` so với trần 2; stop condition và Oanh đối soát | Giới hạn thiệt hại + vận hành | Ngăn tự ghi lỗi thứ 3 trở đi qua đường hiện tại; giảm thiệt hại tích lũy, không chứng minh hai lỗi đầu đều đúng. | Trạng thái phân tán/reset sai ngày, ghi từ hệ thống khác, hoặc lỗi chia qua nhiều hãng. |
 
 ---
 
@@ -378,9 +378,8 @@ Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [g
 
 | Rủi ro | Khả năng | Tác động | Người phụ trách (PIC, một người) | Dấu hiệu (metric nào, ngưỡng nào) | Xử lý | Ảnh hưởng bước đánh giá | Nhóm chức năng (GOVERN / MAP / MEASURE / MANAGE) |
 |---|---|---|---|---|---|---|---|
-| Tracking DB thiếu hoặc sai `delay_cause`, khiến cổng chặn oan hoặc bỏ sót lỗi hãng. | Trung bình (`S3-20@11` có `cause_recorded: false`). | Trung bình: khách chờ, hãng khiếu nại, Oanh phải đối soát tay. | **NV-OANH** (kế toán đối soát) | `carrier_fault_delay_mismatch_rate > 0`; `max_carrier_strikes_per_day > 2`. | Đối soát tracking, bổ sung cause; tạm tắt `file_carrier_fault` nếu monitor > 0; ghi nhận ca thiếu. | Gate 2 có thể chặn oan; phải đo tỉ lệ cause trống trước khi mở rộng. | MEASURE / MANAGE |
-| Batch `index_active` chậm so với ngày hiệu lực, gây dùng sai chính sách. | Thấp (đã có cổng ghim policy). | Cao: hoàn sai/thiếu, lỗi hãng oan. | **Nguyễn Quang Đạo** (Sản phẩm) | `policy_id` trong trace/report; `wrongful_refund_vnd > 0`; chưa có monitor riêng. | Kiểm batch theo `effective_from/to`; `pre_guard` pin policy; thêm monitor tuổi phiên bản chính sách. | Gate 1 đã chặn; cần kiểm bảng `policies` trước pilot. | GOVERN / MANAGE |
-| Một hãng vượt ngưỡng đình chỉ vì nhiều lỗi tự động trong ngày. | Thấp sau khi có trần 2. | Cao: mất đối tác, phạt 120.000đ/lỗi. | **NV-TUNG** (giám sát vận hành) | `max_carrier_strikes_per_day > 2`; `wrongful_carrier_faults > 0`. | Trần 2 lỗi/hãng/ngày; NV-OANH xác nhận với hãng; thông báo và xin lỗi trong 24h. | Gate 3 giới hạn thiệt hại; cần đo sổ giao của hãng trong pilot. | MANAGE |
+| Policy/tracking nguồn sai nhưng hợp lệ hình thức làm gate cho qua | Trung bình | Cao: hoàn sai hoặc hãng bị phạt oan | Phạm Kiều Oanh / NV-OANH | `wrongful_carrier_faults > 0`, `carrier_fault_delay_mismatch_rate > 0`, hoặc khiếu nại không khớp tracking | Tắt thao tác liên quan trong 5 phút; bảo toàn snapshot; đối soát với hãng, sửa nguồn và chạy lại regression trước bật | Nếu xuất hiện thì không chọn Tiếp tục; Thu hẹp/Cải tiến thêm tới khi nguồn và gate được xác minh | MAP · MEASURE · MANAGE |
+| Trạng thái đếm lỗi theo hãng/ngày thiếu đồng bộ hoặc bị ghi qua hệ thống khác | Trung bình | Cao: vượt trần 2 lỗi/hãng/ngày | Lê Thanh Tùng / NV-TUNG | số lỗi tự động theo hãng/ngày `> 2` hoặc phản ánh hãng dù monitor code bằng 0 | Dừng `file_carrier_fault`, Oanh đối soát mọi nguồn ghi; thêm idempotency/audit liên hệ thống trước mở rộng | Giữ pilot ở phạm vi kiểm soát; không Tiếp tục nếu chưa chứng minh tổng liên hệ thống không vượt trần | GOVERN · MANAGE |
 
 Quy tắc: **mỗi dòng phải đổi được một quyết định.** Cột "Dấu hiệu" phải là một metric có trong `monitors.py` hoặc trong report.
 
@@ -396,29 +395,28 @@ Ghi các dòng đổi sau sự cố. Mỗi dòng vẫn phải có một PIC có 
 
 | # nhóm | Trạng thái mới (Xong / Chưa / Không áp dụng) | Bằng chứng mới (mã lần chạy, mục phiếu, số trong report) | PIC |
 |---|---|---|---|
-| 1 · Chất lượng | Xong | `R-S3-after-20261118-204727-89e5b3`: 60/60, 0 lỗi hãng oan, 0 hoàn sai; `R-base-after-20261118-204816-89e5b3`: 110/110. | Vũ Nguyễn Hoàng Minh |
-| 2 · Dữ liệu | Chưa | `S3-20@11` có `cause_recorded:false`; cần đo tỉ lệ thiếu cause trước pilot; risk register C10. | Nguyễn Quang Đạo |
-| 4 · Quyền hạn | Xong | Approval chỉ dùng khi đúng ticket/còn hạn/đủ `max_vnd`; trần 2 lỗi/hãng/ngày; `checkpoint 40708a2c`. | Vũ Nguyễn Hoàng Minh |
-| 6 · Chi phí | Xong | `R-S3-after-...204727`: 4.405đ/ticket < 10.000đ; ROI 1.27; 0 ca ùn. | Nguyễn Quang Đạo |
-| 8 · Con người, pháp lý | Xong | `legal.carrier_fault_requires_recorded_cause = true`; PII allowlist; S3 `pii_leaks = 0`. | Đàm Tuấn Linh |
+| 1 · Chất lượng | Xong trên visible; còn chờ integrity | `R-S3-after-20261118-204727-89e5b3`: pass_rate/pass_k 1,0, hoàn sai 0đ, lỗi hãng oan 0; integrity ❌ do máy A thiếu các gói thẻ khác, cần Coach xác nhận | Vũ Nguyễn Hoàng Minh |
+| 7 · Vận hành | Xong cho cấu hình hiện tại, cần diễn tập | after: 0 ca ùn, escalation 0,0833; B7.5–B7.6 có PIC, SLA 60 phút, dừng trong 5 phút | Đàm Tuấn Linh |
+| 8 · Con người, pháp lý | Xong trên visible; còn rủi ro nguồn | after: PII 0, lỗi hãng oan 0; C3–C4 và C10 ghi điểm hở tracking/policy | Đàm Tuấn Linh |
+| 9 · Quyết định | Chưa | C0/C1 có ba mốc; C12 còn phải do C/cả bàn chốt và phải xử lý integrity ❌ trước khi cân nhắc Tiếp tục | Nguyễn Quang Đạo |
 
 ### Runbook 4 · Sau sự cố trên thẻ (vòng 2)
 
 | Câu hỏi | Trả lời |
 |---|---|
-| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | Chưa có. Runbook 2 chỉ có hàng chờ/chi phí/hoàn sai/PII; thiếu **số lỗi tự động theo hãng/ngày**. Đã thêm `max_carrier_strikes_per_day` (ngưỡng VÀNG 2, ĐỎ > 2) và `carrier_fault_delay_mismatch_rate` (ĐỎ > 0). |
-| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | Thêm trần **2 lỗi/hãng/ngày**; `carrier_fault_requires_recorded_cause = true`; `decision_note = true`; kiểm mẫu **10%**; hạn chờ **60 phút**. |
-| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | PIC **NV-TUNG**; người duyệt **NV-HANH**; đối soát hãng **NV-OANH**; 1 người trực/ca (6 ca/giờ); gọi thêm khi hàng chờ > 6 ca hoặc chờ > 30 phút. |
-| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | Giữ phạm vi `all`; bật ghi chú giải thích cho mọi quyết định; kiểm mẫu 10%; trần hoàn tự động 1.500.000đ/ngày; tắt `file_carrier_fault` nếu monitor ĐỎ. |
-| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | NV-OANH gửi MKD danh sách lỗi bị huỷ/đính chính trong **24 giờ**, kèm xin lỗi và xác nhận sổ giao; báo NV-HANH nếu có khiếu nại; không gửi PII. |
-| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | S3 có `pii_leaks = 0`; không có dữ liệu cá nhân rời hệ thống. Nếu phát hiện, báo NV-OANH + bộ phận pháp lý trong 24h và ghi risk register. |
-| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | Lộ qua **phản hồi của hãng MKD** (Zalo OA) và đọc nội dung; máy đo chưa có monitor trần lỗi hãng. Nguồn còn thiếu: sổ giao/số lỗi thực tế của hãng và tỉ lệ tracking thiếu cause. |
+| Tín hiệu nào ở Runbook 2 (Phiếu B mục B7.5) lẽ ra phải báo trước sự cố này? Nó đã có chưa? | `wrongful_carrier_faults` và `carrier_fault_delay_mismatch_rate`; prepared cho thấy 10 lỗi oan. Runbook vòng 1 có ngưỡng đỏ >0 nhưng bản prepared chưa có trần theo hãng/ngày. After đã có cổng đếm trần; cần thêm dashboard tổng hợp mọi nguồn ghi. |
+| Bàn thêm hoặc đổi ngưỡng nào, từ bao nhiêu thành bao nhiêu? | Thêm trần từ “chưa kiểm theo hãng/ngày” thành tối đa 2 lỗi tự động/hãng/ngày; từ lỗi thứ 3 deny và chuyển người. Giữ wrongful carrier fault = 0, mismatch = 0. |
+| Bàn đổi gì về **người** (số người trực, ai đứng tên, ai được gọi)? | Giữ 1 người duyệt Hạnh, 6 ca/giờ vì after 0 ca ùn; Tùng giữ quyền dừng, Oanh nhận khiếu nại/đối soát. Nếu hàng đợi >=4 hoặc chờ >=45 phút mới gọi người dự phòng có quyền; không tăng người chỉ để làm xanh report. |
+| Bàn đổi gì về **phạm vi** hoặc **quy trình** (kiểm mẫu, ghi chú giải thích, trần)? | Giữ phạm vi all/100% vì visible after đạt và 0 ca ùn, nhưng chưa coi integrity ❌ là đạt. Bật decision_note, kiểm mẫu 10%, cổng legal có căn cứ; thêm trần 2 lỗi/hãng/ngày và dừng tool trong 5 phút khi có lỗi oan. |
+| Nói gì với bên thứ ba bị ảnh hưởng (hãng, shop, người nhận, nhân viên duyệt), ai nói, trong bao lâu? | Oanh xác nhận đã tiếp nhận trong 60 phút, nêu các mã lỗi đang tạm giữ/đối soát, không đổ lỗi trước khi xác minh; Tùng thông báo đã dừng đường ghi liên quan trong 5 phút. Sau đối soát, Oanh gửi kết quả sửa/huỷ lỗi và khoản phạt cho MKD qua kênh đã xác thực. |
+| Dữ liệu cá nhân nào đã rời hệ thống mà không thu hồi được? Báo cho ai? | Report S3 ghi PII = 0 nên chưa có bằng chứng dữ liệu cá nhân rời hệ thống trong sự cố này. Nếu log/payload thực khác report, báo Tùng và Oanh ngay, bảo toàn bằng chứng và xử lý theo quy trình sự cố dữ liệu; không tuyên bố đã thu hồi. |
+| Sự cố lộ ra trước qua số máy đo, phản hồi của người, hay đọc nội dung? Nguồn nào bàn chưa có? | Thẻ bắt đầu từ phản hồi MKD/CSKH; report sau đó lượng hoá 35 → 10 → 0 lỗi oan. Bàn chưa có feed phạt/đình chỉ và khiếu nại production độc lập, cũng chưa có tổng audit từ hệ thống khác ghi lỗi hãng. |
 
 ### Runbook 5 · Ba kịch bản "nếu … thì …" cho tuần đầu chạy thử thật
 
-1. Nếu số ticket tăng gấp **3 lần** trong một giờ thì: **NV-TUNG** thêm 1 người trực (1 → 2) khi hàng chờ > 6 ca hoặc chờ > 30 phút; nếu chờ > 60 phút hoặc có ca ùn thì tạm ngừng nhận ca tự động mới và **thu hẹp** `pilot_scope` khác 0 (ví dụ 50%), không tắt hẳn; kiểm lại cost/ROI sau ca.
-2. Nếu nhà cung cấp LLM lỗi quá **15 phút** thì: **NV-TUNG** tắt `issue_refund` và `file_carrier_fault` bằng `config/switches.json`, chuyển toàn bộ ticket sang người xử lý tay; **NV-HANH** thông báo khách bị ảnh hưởng; bật lại khi LLM ổn định ≥ 30 phút và có xác nhận của NV-TUNG.
-3. Nếu người duyệt báo không tin một quyết định của trợ lý thì: **NV-HANH** kiểm mẫu 100% trong ngày, đọc `decision_note` + trace của ticket đó, ghi lại lý do; nếu lặp lại ≥ 2 lần thì **thu hẹp** phạm vi hoặc tắt thao tác ghi liên quan, báo Nguyễn Quang Đạo đánh giá lại Gate 1.
+1. Nếu số ca cần người tăng gấp **3** lên kịch bản 18 ca/giờ thì Hạnh báo Tùng ngay; Tùng ngừng nhận ca tự động mới nếu chờ >=60 phút/queue_stuck >0, gọi người dự phòng có quyền khi hàng đợi >=4 hoặc chờ >=45 phút, và C chỉ thu hẹp phạm vi khác 0 sau khi xem report theo kho.
+2. Nếu nhà cung cấp LLM lỗi quá **5 phút** thì Tùng ngừng nhận ca tự động mới, không retry lệnh ghi chưa rõ trạng thái; Hạnh đưa ticket sang quy trình làm tay, Oanh đối soát ledger/fault trước khi xử lý lại. Chỉ bật lại sau kiểm tra idempotency và một lượt kiểm chứng trên máy A.
+3. Nếu người duyệt báo không tin một quyết định thì Hạnh đánh dấu ticket, giữ giao dịch chưa ghi và yêu cầu decision_note + nguồn policy/tracking/approval; Tùng kiểm tra 10% mẫu và monitor. Một quyết định không khớp nguồn làm dừng thao tác liên quan trong 5 phút, Oanh đối soát, chỉ bật lại khi nguyên nhân được sửa và có bằng chứng regression.
 
 ---
 
@@ -456,6 +454,6 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 - Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: chưa có **sổ giao/số lỗi thực tế của hãng** và **tỉ lệ tracking thiếu `delay_cause`** ngoài mock; nếu tỉ lệ thiếu cause cao, cổng G2 có thể chặn oan và làm hãng/khách chờ — cần đo trong pilot trước khi mở rộng.
 
 **Ba dòng bắt buộc** (chép nguyên ba câu này sang `submission/submission.json`, mục `three_lines`)
-1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: **Hệ thống giả định tracking DB luôn ghi đủ `delay_cause` và cờ `index_active` được batch cập nhật đúng ngày hiệu lực; thực tế cả hai đều có thể trễ hoặc thiếu.**
-2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: **Cổng NGĂN hẳn việc dùng sai policy và ghi lỗi khi thiếu cause/sai kiện (đọc tracking, không đọc chữ khách); trần 2 lỗi/hãng/ngày chỉ GIẢM/giới hạn lỗi thứ 3 trở đi, không thay người xác nhận với hãng.**
-3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: **Cần đo lại tỉ lệ tracking thiếu `delay_cause`, số lỗi tự động mỗi hãng mỗi ngày, và `policy_id` thực tế tại thời điểm chạy; dữ liệu mock chưa có bài kiểm tra ẩn.**
+1. Một giả định về môi trường mà thiết kế của đội đang dựa vào, có thể sai ngoài thực tế: Thiết kế cổng của đội giả định bảng `policies` (`effective_from`/`effective_to`), trường `delay_cause` trong tracking DB luôn được cập nhật đúng nguồn sự thật và mọi lệnh ghi lỗi hãng đều đi qua công cụ của trợ lý trong ca để bộ đếm trần `2` lỗi/hãng/ngày có hiệu lực, nhưng thực tế dữ liệu nguồn có thể bị nhập sai hoặc hệ thống khác ghi chồng chéo.
+2. Gate của đội chỉ GIẢM khả năng hay thực sự NGĂN được tác hại? Vì sao: Các cổng ở `pre_guard` và `write_gate` NGĂN hẳn được việc dùng chính sách hết hạn, hoàn sai tiền theo lời khách và ghi lỗi hãng khi thiếu `delay_cause` hợp lệ qua luồng trợ lý; riêng cổng đếm `2` lỗi/hãng/ngày chỉ GIẢM thiệt hại tích lũy (chặn từ lỗi thứ 3 trở đi để người xác nhận) chứ không chứng minh được 2 lỗi đầu đúng nếu bản thân tracking DB sai hoặc có hệ thống ngoài ghi đè.
+3. Vì data là mock, cần đo lại gì trong pilot thật trước Bước đánh giá 2: Trước Gate 2 cần đo lại độ trễ và tỉ lệ lỗi thật của LLM không tất định, tỉ lệ sai sót của dữ liệu tracking (`delay_cause`) và bảng `policies` ngoài thực tế, thời gian xử lý/kiểm mẫu thực tế của nhân viên duyệt (thay cho giả định `6` ca/giờ và `0,4` đơn vị ca), cùng số khiếu nại từ các hãng vận chuyển và kế toán đối soát.
