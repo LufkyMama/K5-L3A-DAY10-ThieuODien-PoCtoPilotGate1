@@ -8,3 +8,6 @@
 config/acceptance_criteria.json eol=crlf
 config/operating_gates.round1.json eol=crlf
 lab10/guards_round1.py eol=crlf
+
+# Giữ nguyên byte của bài nộp đã gom: submission/manifest.json băm chính các byte này.
+submission/** -text
