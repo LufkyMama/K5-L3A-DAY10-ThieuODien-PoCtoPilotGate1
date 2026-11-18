@@ -330,53 +330,59 @@ nguyên nhân trong tracking). Rồi viết runbook dưới đây **khớp với
 
 *Runbook là tờ giấy người trực ca cầm lúc 23h khi có chuyện. Nó trả lời: nhìn con số nào, ngưỡng nào thì làm gì, ai được quyết.
 Phần 1–3 và mục Giờ cao điểm viết ở vòng 1. Phần 4–5 viết ở vòng 2 (Phiếu C mục C11). Mọi con số phải khớp `config/operating_gates.json` và report.*
-*Mỗi phần trả lời bốn câu hỏi: ai chịu trách nhiệm, nhìn gì, ngưỡng nào, làm gì.* **Người viết (vai Vận hành và pháp lý):** ______
+*Mỗi phần trả lời bốn câu hỏi: ai chịu trách nhiệm, nhìn gì, ngưỡng nào, làm gì.* **Người viết (vai Vận hành và pháp lý):** Đàm Tuấn Linh — DamTuanLinh-2A202603624; dùng Codex hỗ trợ soạn và đối chiếu.
+
+**Bổ sung sau chốt:** Đàm Tuấn Linh — DamTuanLinh-2A202603624. Repo đã có bản chốt vòng 1 trước lượt sửa này; nội dung dưới đây mô tả bản hiện tại, không phải bằng chứng prepared. Bản chốt và B8 giữ nguyên; A cần đo after trên máy chính. Các ngưỡng phản ứng là phương án vận hành, chưa được diễn tập hay xác nhận đạt.
 
 #### Runbook 1 · Ai chịu trách nhiệm
 
-| Vai | Tên / mã nhân viên (lấy từ `data/world.json` → `staff`) | Được quyền làm gì | Liên lạc qua kênh nào |
+| Vai | Tên / mã nhân viên | Được quyền làm gì | Liên lạc |
 |---|---|---|---|
-| PIC của trợ lý (một người) | | | |
-| Người duyệt đứng tên các khoản vượt hạn mức | | | |
-| Người giữ công tắc tắt từng thao tác ghi | | | |
-| Người nhận khiếu nại của bên thứ ba (hãng, shop, người nhận quà) | | | |
+| PIC trợ lý | Lê Thanh Tùng / NV-TUNG | Quyết định dừng và điều phối; phối hợp C quyết định phạm vi | Kênh nội bộ đề xuất #logix-pilot-ops; khẩn cấp gọi trực tiếp |
+| Người duyệt khoản vượt hạn mức | Trần Thị Hạnh / NV-HANH | Duyệt/từ chối theo hồ sơ; approval phải đúng ticket và còn hiệu lực | Cùng kênh; gọi trực tiếp |
+| Người giữ công tắc | Lê Thanh Tùng / NV-TUNG | Tắt thao tác ghi, kiểm tra đã dừng; không tự sửa tiêu chí | Cùng kênh; gọi trực tiếp |
+| Nhận khiếu nại bên thứ ba | Phạm Kiều Oanh / NV-OANH | Đối soát và xác minh khoản/lỗi bị phản ánh; chuyển quyết định dừng cho Tùng | Cùng kênh, bằng chứng được phân quyền |
 
-Số người trực duyệt mỗi ca: ___ · Mỗi giờ duyệt được: ___ ca · Phạm vi pilot: ______ (tất cả / kho nào / bao nhiêu phần trăm)
+Kênh trên là đề xuất trong alert_channel, chưa khẳng định đã tạo hoặc có người nhận; phải xác nhận trước pilot thật. Không gửi PII thô vào cảnh báo.
+
+Số người duyệt mỗi ca: **1 (Hạnh)**; công suất **6 ca/giờ**; ca **480 phút**. Phạm vi hiện tại **all, 100%** theo business của C. Giữ một người theo ops_facts.default_reviewers_on_shift; chưa có bằng chứng tải để tăng số người. Công suất không vượt số người × 6. SLA nhận xử lý **60 phút**, khác thời gian hoàn tất.
+
+decision_note = **true**, review_sampling_pct = **10**: khớp điều kiện tin cậy trong staff_behavior; ghi chú tốn thêm 100đ/ticket theo ops_facts.llm_cost.decision_note, kiểm lại có ghi chú tốn 0,4 đơn vị ca. Approval không hợp lệ vẫn có thể làm nhân viên kiểm lại nhiều hơn; không tự kết luận đã đạt tin cậy.
+
+Cổng legal bật yêu cầu nguyên nhân ghi nhận; chặn các trường name, phone, street, address, email, recipient, recipient_contact, customer, customer_note, checkout_note trước gửi hãng. Việc bỏ cả trường cha recipient_contact/customer_note ngăn giữ nguyên dữ liệu lồng và chữ khách tự gõ tại các trường này. Danh sách chặn không chứng minh mọi tên trường lạ đều an toàn: cần cổng allowlist của kỹ sư và kiểm payload thực xuất. Policy phải được chọn theo thời điểm hiệu lực; đây không phải chứng nhận tuân thủ pháp luật.
 
 #### Runbook 2 · Nhìn con số nào, ngưỡng nào thì làm gì
 
-Mỗi dòng một tín hiệu. Cột "Lấy ở đâu" phải là một dòng trong report của `lab10.eval` / `lab10.grade` hoặc một chỉ số trong `lab10/monitors.py`.
-
-| Tín hiệu | Lấy ở đâu | Bình thường | Ngưỡng VÀNG → việc làm | Ngưỡng ĐỎ → việc làm | Ai quyết |
+| Tín hiệu | Lấy ở đâu | Bình thường | VÀNG → việc làm | ĐỎ → việc làm | Ai quyết |
 |---|---|---|---|---|---|
-| Thời gian chờ người duyệt lâu nhất | | | | | |
-| Số ca bị ùn | | | | | |
-| Chi phí mỗi ticket so với làm tay | | | | | |
-| Tổng tiền hoàn tự động trong ngày so với trần | | | | | |
-| Tiền hoàn sai | | | | | |
-| Lỗi ghi oan cho hãng / lộ dữ liệu cá nhân (pháp lý) | | | | | |
-| (tín hiệu riêng của bàn) | | | | | |
+| Chờ người duyệt lâu nhất | report queue_wait_max_min | < 45 phút | >= 45 và < 60: Hạnh báo Tùng, rà soát tải | >= 60: ngừng nhận ca tự động mới trong 5 phút, xử lý tồn | Tùng |
+| Ca bị ùn | report queue_stuck | 0 | Chờ >= 45 phút dù chưa có ca ùn: chuẩn bị hỗ trợ | > 0: dừng nhận mới trong 5 phút | Tùng, Hạnh tiếp nhận |
+| Chi phí và ROI | report cost_per_ticket_vnd, roi | <= 8.000đ và ROI >= 0,25 | Chi phí > 7.000đ nhưng <= 8.000đ: C xem phí duyệt/kiểm lại | > 8.000đ hoặc ROI < 0,25: dừng mở rộng, C đánh giá thu hẹp trước ca tới | Nguyễn Quang Đạo và Tùng |
+| Tổng hoàn tự động/ngày | report auto_refund_day_max_vnd | < 1.200.000đ | >= 1.200.000đ tới 1.500.000đ: báo C/Hạnh, khoản tiếp theo vượt trần chuyển duyệt | > 1.500.000đ: tắt issue_refund trong 5 phút, đối soát | Tùng |
+| Tiền hoàn sai | report wrongful_refund_vnd | 0 | Có khiếu nại chưa xác minh: Hạnh kiểm hồ sơ | > 0: tắt issue_refund trong 5 phút | Tùng; Hạnh/Oanh kiểm tra |
+| Lỗi oan / lộ dữ liệu | report wrongful_carrier_faults, pii_leaks | 0 | Thiếu dữ liệu: Oanh điều tra, không coi là đạt | > 0: tắt file_carrier_fault hoặc notify_carrier tương ứng trong 5 phút | Tùng |
+| Sai độ trễ ghi lỗi / trường ngoài allowlist | monitors carrier_fault_delay_mismatch_rate, carrier_payload_extra_fields_rate | 0 khi có giao dịch và đủ log | Mất log/không có mẫu: chưa đủ căn cứ, xác minh nguồn | > 0: tắt thao tác ghi/gửi tương ứng trong 5 phút, Oanh kiểm giao dịch | Tùng |
+
+Các mốc VÀNG 45 phút và 80% trần tiền là vùng đệm chủ động; 60 phút là ngưỡng can thiệp tại biên SLA, nghiêm hơn báo cáo vốn đếm ca vượt 60 phút. Ngưỡng 8.000đ/ROI 0,25 lấy từ Phiếu A/B7.4 của C; D không mở hoặc sửa tiêu chí đã ký. Các chỉ số wrongful cần nhãn trong lab, không tự có ở production; production dùng monitor, phản ánh và đối soát để xác minh. Không có report mới nên bảng này chưa có số quan sát.
 
 #### Runbook 3 · Điều kiện dừng và cách dừng
 
-- Dừng một phần (tắt một thao tác ghi, thu hẹp phạm vi) khi: …
-- Dừng hẳn khi: …
-- Cách dừng, từng bước (công tắc nào trong `config/switches.json`, dòng nào trong `config/operating_gates.json`): …
-- Từ tín hiệu đỏ đến lúc dừng xong tối đa ____ phút; người bấm: ____
-- Khi đã dừng, ticket đang chờ đi đâu, ai xử lý: …
-- Điều kiện để bật lại, ai ký: …
+- Dừng một phần theo đúng năm câu stop_conditions trong operations: lỗi tiền/tổng hoàn vượt trần → issue_refund; lỗi hãng/sai độ trễ → file_carrier_fault; PII/payload ngoài allowlist → notify_carrier; chờ >= 60 phút hoặc có ca ùn → ngừng nhận ca tự động mới. Chi phí > 8.000đ hoặc ROI < 0,25 → dừng mở rộng và C xem xét thu hẹp trước ca tiếp theo.
+- Dừng toàn luồng tự động nếu lỗi ảnh hưởng nhiều thao tác, không khoanh vùng được hoặc không thể xác nhận các lệnh ghi đã ngừng. Không dùng percent = 0 để tạo báo cáo đạt.
+- Tùng xác nhận cảnh báo, ghi thời điểm/ID giao dịch và phạm vi; trong hệ thống vận hành tắt công tắc thao tác tương ứng trong switches.json. Khi dừng toàn bộ, ngừng nhận mới và tắt cả issue_refund, file_carrier_fault, notify_carrier, send_reply; trả lời khách do CSKH thực hiện. Đây là hướng dẫn khi có sự cố, lượt sửa này không thay switches.
+- Từ tín hiệu ĐỎ tới dừng xong **tối đa 5 phút**, người bấm **NV-TUNG**. Đây là mục tiêu cần diễn tập, không phải cơ chế tự động: stop_conditions/alert_channel chỉ là hồ sơ, không tự gửi cảnh báo hay bấm công tắc.
+- Hạnh quản lý ticket đang chờ theo thời điểm đến và rủi ro; Oanh đối soát các khoản đã ghi trước khi xử lý lại. Không xoá hàng chờ, không tự lặp giao dịch chưa rõ trạng thái. Nếu thiếu người, Tùng gọi hỗ trợ có thẩm quyền; không mặc định Oanh là người duyệt hoàn.
+- Bật lại khi nguyên nhân đã xử lý, đối soát không còn khoản chưa giải quyết, kiểm chứng trên máy A không còn ngưỡng bắt buộc trượt/ca đúng bị hỏng và tải nằm trong công suất. Tùng quyết định cùng Hạnh, Oanh xác nhận đối soát, C xác nhận chi phí/phạm vi; ghi người duyệt, thời điểm và bằng chứng. Không sửa tiêu chí hoặc bản prepared để hợp thức hóa.
 
-### B7.6 · Giờ cao điểm (bắt buộc với thẻ S4; các thẻ khác nên có)
+### B7.6 · Giờ cao điểm
 
-Lượng ticket có thể dồn gấp ba trong một giờ (ngày sale, sau bão). Viết trước, khi chưa biết sự cố.
-
-| Câu hỏi | Trả lời (có số, có tên) |
+| Câu hỏi | Trả lời |
 |---|---|
-| Giờ cao điểm là khi nào, bao nhiêu ticket mỗi giờ (dựa vào `ops_facts`)? | |
-| Ai trực giờ cao điểm, mấy người (khớp `operations.reviewers_on_shift`)? | |
-| Ngưỡng nào thì **gọi thêm người** (hàng chờ bao nhiêu ca, chờ lâu nhất bao nhiêu phút)? Ai gọi? | |
-| Ngưỡng nào thì **thu hẹp** phạm vi (khoá `business.pilot_scope`) hoặc **tắt** một thao tác ghi (`config/switches.json`)? Ai quyết? | |
-| Thêm người thì chi phí mỗi ticket và ROI thay đổi thế nào (đọc report)? | |
+| Khi nào, bao nhiêu ticket/giờ? | Sale/sau bão là tình huống dự kiến, chưa có số tải đo. ops_facts cho công suất 6 ca duyệt/người/giờ, không cho lượng ticket đến. Kịch bản stress: 18 ca cần duyệt/giờ = 3 × công suất một người, không khẳng định đó là tải thực. Ca kiểm mẫu cũng dùng công suất. |
+| Ai trực, mấy người? | Hạnh, 1 người, 6 ca/giờ theo operations hiện tại. Tùng điều phối; Oanh đối soát. Chưa khai thêm người có quyền duyệt. |
+| Khi nào gọi thêm? | Hạnh báo Tùng khi >= 4 ca đang đợi (không tính ca đang xử lý) hoặc ca lâu nhất >= 45 phút. Tùng bố trí người dự phòng có quyền duyệt; chỉ cập nhật số người/công suất sau xác nhận nhân sự thật. Ngưỡng 4 để còn khoảng đệm trước 6 ca/giờ. |
+| Khi nào thu hẹp hoặc tắt? | Đến >= 60 phút chờ hoặc queue_stuck > 0: Tùng ngừng nhận tự động mới trong 5 phút. C cùng Tùng chọn kho/phần trăm khác 0 dựa report từng nhóm; ticket bị loại chuyển quy trình làm tay có kế hoạch người, không coi là biến mất khỏi tải. Chưa thay business.pilot_scope. |
+| Chi phí/ROI khi thêm người? | Mỗi người thêm có phí giữ chỗ 30.000đ/ca; công xử lý 10.000đ/đơn vị ca, kiểm có ghi chú 0,4 đơn vị. Nếu số ticket/ngày là N thì riêng phí trực tăng 30.000/N đ/ticket; đây chưa phải tổng biến động. A đo lại chi phí/ROI cùng tải trước/sau; chưa có report để kết luận tăng người có lợi. |
 
 ---
 
