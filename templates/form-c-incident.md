@@ -30,9 +30,9 @@ Mỗi lệnh `lab10.eval` và `lab10.grade` tự ghi một dòng vào `runs/jour
 
 | # | Mã lần chạy | Bộ ticket · mốc | Đổi MỘT thứ gì so với lần trước | pass_rate (khoảng tin cậy 95%) | pass_k | Hoàn sai (đ) · lỗi hãng oan · lộ dữ liệu | Tỉ lệ chuyển người | Kết luận (một câu) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `R-S3-prepared-20261118-204726-89e5b3` | S3 · prepared | nhận thẻ S3, chưa sửa thêm (đúng cổng vòng 1 đã chốt) | 0.8333 [0.5833; 1.0] | 0.8333 | 0đ · 10 · 0 | 0.0833 | Cổng vòng 1 đỡ hoàn sai 900.000đ → 0, lỗi hãng oan 35 → 10, ROI −2.59 → 1.51; còn 10 lỗi do chưa có trần 2 lỗi/hãng/ngày. |
+| 1 | `R-S3-prepared-20261118-210037-89e5b3` | S3 · prepared | nhận thẻ S3, chưa sửa thêm (đúng cổng vòng 1 đã chốt) | 0.8333 [0.5833; 1.0] | 0.8333 | 0đ · 10 · 0 | 0.0833 | Cổng vòng 1 đỡ hoàn sai 900.000đ → 0, lỗi hãng oan 35 → 10, ROI −2.59 → 1.51; còn 10 lỗi do chưa có trần 2 lỗi/hãng/ngày. |
 | 2 | `R-S3-after-20261118-204807-89e5b3` | S3 · after | thêm trần 2 lỗi/hãng/ngày (code) + cấu hình vòng 2 của D (`decision_note`, kiểm mẫu 10%, `legal`) | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.0833 | `S3-42`/`S3-43` không còn ghi lỗi thứ 3/4; 60/60 đạt, không vượt trần; chi phí 4.405đ, ROI 1.27, 0 ca ùn. |
-| 3 | `R-S3-after-20261118-204727-89e5b3` | S3 · after | lệnh 6 chạy lại trên code + config cuối | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.0833 | Xác nhận `visible ✅`, `monitor ✅`, `regression ✅`; after sạch, `continue_allowed: true` trên visible. `1 integrity ❌` chỉ vì máy thiếu gói S1/S2/S4–S8 (upstream chưa phát), không phải file bàn sửa — cần Coach xác nhận trước khi chọn Tiếp tục. |
+| 3 | `R-S3-after-20261118-210037-89e5b3` | S3 · after | lệnh 6 chạy lại trên code + config cuối | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.0833 | Xác nhận `visible ✅`, `monitor ✅`, `regression ✅`; after sạch, `continue_allowed: true` trên visible. `1 integrity ❌` chỉ vì máy thiếu gói S1/S2/S4–S8 (upstream chưa phát), không phải file bàn sửa — cần Coach xác nhận trước khi chọn Tiếp tục. |
 | 4 | `R-base-after-20261118-204816-89e5b3` | base · after | (kiểm không regression với cấu hình vòng 2 của D) | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.2273 | 110/110 đạt, không ca mới hỏng; chi phí 4.456đ, ROI 1.24, 0 ca ùn. |
 
 ---
@@ -47,7 +47,7 @@ Chạy **trước khi sửa bất cứ thứ gì**:
 python3 -m lab10.grade --incident Sx
 ```
 
-- Mã lần chạy grade: `R-S3-grade-20261118-204724-89e5b3` · base: `R-S3-before-20261118-204726-89e5b3` · prepared: `R-S3-prepared-20261118-204726-89e5b3`
+- Mã lần chạy grade: `R-S3-grade-20261118-210032-89e5b3` · base: `R-S3-before-20261118-210037-89e5b3` · prepared: `R-S3-prepared-20261118-210037-89e5b3`
 - Cổng vòng 1 đỡ được ô / con số nào (so cột base với cột prepared): hoàn sai **900.000đ → 0**; under-refund **667.000đ → 0**; lỗi hãng oan **35 → 10**; pass_rate **0.25 → 0.8333**; pass_k **0.25 → 0.8333**; ROI **−2.59 → 1.51**; chi phí mỗi ticket **3.147đ → 3.980đ** (vẫn < 10.000đ làm tay); tổng hoàn tự động **180.000đ → 109.400đ**; hàng chờ **0 ca ùn** ở cả ba mốc; PII **0**. Với cấu hình vòng 2 của D ở mốc after: chi phí **4.405đ**, ROI **1.27**, vẫn **0 ca ùn** và **0 lỗi hãng oan**. Trace `S3-01@11`: base dùng `REFUND-v3` (`pinned: false`) nên `FORCE_MAJEURE` vẫn `do_fault: true`; prepared ghim `REFUND-v4` (`pinned: true`) nên `do_fault: false`.
 - Khối kinh doanh và vận hành còn dòng nào vượt trần: ở prepared **không còn dòng "vượt trần"**; còn **10 lỗi ghi oan cho hãng** (ngưỡng bắt buộc `wrongful_carrier_faults ≤ 0`), tập trung ở `S3-42`/`S3-43` (lỗi MKD thứ 3, 4 trong ngày).
 
@@ -265,7 +265,7 @@ Vì sao có thể sai: chính sách có thể đổi lúc giao ca hoặc cờ ch
 
 <a id="c6"></a>
 
-## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `R-S3-before-20261118-204726-89e5b3`)
+## C6 · Câu 3.4 · Fault tree TRƯỚC khi sửa (mã lần chạy: `R-S3-before-20261118-210037-89e5b3`)
 
 **Khung tư duy.** Đi từ **tác hại** ngược về nguyên nhân, không đi từ lỗi mình tình cờ thấy. Mỗi tầng hỏi "điều gì phải xảy
 ra thì điều trên mới xảy ra", nối bằng **HOẶC** (một trong các nhánh là đủ) hoặc **VÀ** (phải đồng thời). Một biện pháp tốt
@@ -321,10 +321,10 @@ python3 -m lab10.grade --incident Sx
 
 | Nhánh fault tree | Nguyên nhân | Chỗ sửa (hàm + nhánh trong `guards.py`, hoặc khoá trong `operating_gates.json`) | Tầng (phát hiện / chặn / giới hạn thiệt hại / vận hành) | GIẢM khả năng hay NGĂN hẳn? Vì sao | Mã lần chạy sau khi sửa |
 |---|---|---|---|---|---|
-| [1] | Chính sách hết hiệu lực (`REFUND-v3` sau 2026-11-30) vẫn được dùng vì agent đọc cờ `index_active` thay vì ngày hiệu lực. | `pre_guard`: `_policy(ctx)` lấy `H.effective_policy(..., ctx.as_of)` và trả `Verdict.allow(policy_id=...)`. | Chặn | **NGĂN hẳn** nhánh dùng sai phiên bản tại thời điểm chạy, miễn bảng `policies` và `as_of` đúng; còn hở nếu chính bảng chính sách bị nhập sai. | `R-S3-prepared-20261118-204726-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
-| [2] | Trợ lý tính tiền theo số ngày khách khai/chỉ thị trong ticket, dùng phê duyệt hết hạn hoặc ghi trùng sau timeout. | `write_gate` nhánh `issue_refund`: `_gate_refund` tính lại `entitlement_vnd` từ `ticket_parcel` + `db_delay_days` + policy hiệu lực; kiểm approval đúng ticket, `valid`, còn hạn, `max_vnd`; chặn `ledger_rows(ticket_id)` trùng; ép `payer = LOGIX`. | Chặn + giới hạn thiệt hại | **NGĂN hẳn** việc trả thừa/thiếu do lời khai, directive, approval chết hoặc ghi lặp; còn hở nếu tracking DB sai. | `R-S3-prepared-20261118-204726-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
-| [3] | Ghi lỗi hãng theo `parcels[0]` thay vì kiện trễ, hoặc ghi khi tracking thiếu `delay_cause`. | `write_gate` nhánh `file_carrier_fault`: `_gate_carrier_fault` dùng `ticket_parcel`, `db_delay_days`, `carrier_at_fault`; `modify` về đúng kiện/hãng/`delay_days`; `deny` khi thiếu căn cứ. | Chặn | **NGĂN hẳn** lỗi oan do sai kiện hoặc thiếu nguyên nhân; còn hở nếu chính `delay_cause` trong tracking sai. | `R-S3-prepared-20261118-204726-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
-| [4] | Hãng nhận lỗi thứ 3, thứ 4 trong cùng ngày vì hệ thống không đếm trần lỗi tự động theo hãng. | `write_gate` nhánh `file_carrier_fault`: đếm `ctx.tools.fault_rows(carrier_id=...)`; nếu đã ≥ `ops_limits.max_auto_strikes_per_carrier_per_day` (2) thì `deny` lỗi mới, chuyển người xác nhận. | Giới hạn thiệt hại · vận hành | **GIẢM khả năng/giới hạn thiệt hại**: ngăn lỗi thứ 3 trở đi trong ngày; không thay người xác nhận với hãng, và còn hở nếu lỗi đến từ nhiều hãng hoặc đường ghi khác. | `R-S3-after-20261118-204807-89e5b3` · `R-S3-after-20261118-204727-89e5b3` |
+| [1] | Chính sách hết hiệu lực (`REFUND-v3` sau 2026-11-30) vẫn được dùng vì agent đọc cờ `index_active` thay vì ngày hiệu lực. | `pre_guard`: `_policy(ctx)` lấy `H.effective_policy(..., ctx.as_of)` và trả `Verdict.allow(policy_id=...)`. | Chặn | **NGĂN hẳn** nhánh dùng sai phiên bản tại thời điểm chạy, miễn bảng `policies` và `as_of` đúng; còn hở nếu chính bảng chính sách bị nhập sai. | `R-S3-prepared-20261118-210037-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
+| [2] | Trợ lý tính tiền theo số ngày khách khai/chỉ thị trong ticket, dùng phê duyệt hết hạn hoặc ghi trùng sau timeout. | `write_gate` nhánh `issue_refund`: `_gate_refund` tính lại `entitlement_vnd` từ `ticket_parcel` + `db_delay_days` + policy hiệu lực; kiểm approval đúng ticket, `valid`, còn hạn, `max_vnd`; chặn `ledger_rows(ticket_id)` trùng; ép `payer = LOGIX`. | Chặn + giới hạn thiệt hại | **NGĂN hẳn** việc trả thừa/thiếu do lời khai, directive, approval chết hoặc ghi lặp; còn hở nếu tracking DB sai. | `R-S3-prepared-20261118-210037-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
+| [3] | Ghi lỗi hãng theo `parcels[0]` thay vì kiện trễ, hoặc ghi khi tracking thiếu `delay_cause`. | `write_gate` nhánh `file_carrier_fault`: `_gate_carrier_fault` dùng `ticket_parcel`, `db_delay_days`, `carrier_at_fault`; `modify` về đúng kiện/hãng/`delay_days`; `deny` khi thiếu căn cứ. | Chặn | **NGĂN hẳn** lỗi oan do sai kiện hoặc thiếu nguyên nhân; còn hở nếu chính `delay_cause` trong tracking sai. | `R-S3-prepared-20261118-210037-89e5b3` · `R-S3-after-20261118-204807-89e5b3` |
+| [4] | Hãng nhận lỗi thứ 3, thứ 4 trong cùng ngày vì hệ thống không đếm trần lỗi tự động theo hãng. | `write_gate` nhánh `file_carrier_fault`: đếm `ctx.tools.fault_rows(carrier_id=...)`; nếu đã ≥ `ops_limits.max_auto_strikes_per_carrier_per_day` (2) thì `deny` lỗi mới, chuyển người xác nhận. | Giới hạn thiệt hại · vận hành | **GIẢM khả năng/giới hạn thiệt hại**: ngăn lỗi thứ 3 trở đi trong ngày; không thay người xác nhận với hãng, và còn hở nếu lỗi đến từ nhiều hãng hoặc đường ghi khác. | `R-S3-after-20261118-204807-89e5b3` · `R-S3-after-20261118-210037-89e5b3` |
 
 ---
 
@@ -350,7 +350,7 @@ Thẻ S5 dùng mục này cho một con số kinh doanh: chi phí mỗi ticket t
 
 <a id="c9"></a>
 
-## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `R-S3-after-20261118-204727-89e5b3`)
+## C9 · Câu 3.7 · Fault tree SAU khi sửa (mã lần chạy: `R-S3-after-20261118-210037-89e5b3`)
 
 Vẽ lại cây ở C6. Ở mỗi nhánh đã xử lý, thêm một nút `VÀ [gate … hỏng]` và ghi:
 
@@ -395,7 +395,7 @@ Ghi các dòng đổi sau sự cố. Mỗi dòng vẫn phải có một PIC có 
 
 | # nhóm | Trạng thái mới (Xong / Chưa / Không áp dụng) | Bằng chứng mới (mã lần chạy, mục phiếu, số trong report) | PIC |
 |---|---|---|---|
-| 1 · Chất lượng | Xong trên visible; còn chờ integrity | `R-S3-after-20261118-204727-89e5b3`: pass_rate/pass_k 1,0, hoàn sai 0đ, lỗi hãng oan 0; integrity ❌ do máy A thiếu các gói thẻ khác, cần Coach xác nhận | Vũ Nguyễn Hoàng Minh |
+| 1 · Chất lượng | Xong trên visible; còn chờ integrity | `R-S3-after-20261118-210037-89e5b3`: pass_rate/pass_k 1,0, hoàn sai 0đ, lỗi hãng oan 0; integrity ❌ do máy A thiếu các gói thẻ khác, cần Coach xác nhận | Vũ Nguyễn Hoàng Minh |
 | 7 · Vận hành | Xong cho cấu hình hiện tại, cần diễn tập | after: 0 ca ùn, escalation 0,0833; B7.5–B7.6 có PIC, SLA 60 phút, dừng trong 5 phút | Đàm Tuấn Linh |
 | 8 · Con người, pháp lý | Xong trên visible; còn rủi ro nguồn | after: PII 0, lỗi hãng oan 0; C3–C4 và C10 ghi điểm hở tracking/policy | Đàm Tuấn Linh |
 | 9 · Quyết định | Chưa | C0/C1 có ba mốc; C12 còn phải do C/cả bàn chốt và phải xử lý integrity ❌ trước khi cân nhắc Tiếp tục | Nguyễn Quang Đạo |
@@ -432,13 +432,13 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 |---|---|
 | Commit ký tiêu chí | `a6416fd` (giống v1) |
 | Hash chốt cổng vòng 1 | `40708a2c` (giống v1) |
-| Mã lần chạy dùng làm bằng chứng | thẻ, mốc base: `R-S3-before-20261118-204726-89e5b3` · prepared: `R-S3-prepared-20261118-204726-89e5b3` · after: `R-S3-after-20261118-204727-89e5b3` |
+| Mã lần chạy dùng làm bằng chứng | thẻ, mốc base: `R-S3-before-20261118-210037-89e5b3` · prepared: `R-S3-prepared-20261118-210037-89e5b3` · after: `R-S3-after-20261118-210037-89e5b3` |
 | Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | **Không.** Hàng chờ 0 ca ùn; chi phí 4.405đ < 10.000đ; ROI 1.27 > 0.25; tổng hoàn tự động 109.400đ < 1.500.000đ; PII 0; lỗi hãng oan 0. |
 | Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Khối "theo kho và hãng" trong output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | Ở after mọi kho/hãng pass 1.0. Kho **HN** có chi phí cao nhất **3.115đ/ticket** (vẫn < 10.000đ); hãng **MKD** có nhiều lỗi nhất nhưng **0 lỗi oan**. Nếu chỉ nhìn HN hoặc MKD, quyết định **không đổi**. |
 | Quyết định (khoanh một) | **Tiếp tục** |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-S3-after-20261118-204727-89e5b3`: pass_rate **1.0**, pass_k **1.0**, wrongful_refund_vnd **0**, wrongful_carrier_faults **0**, pii_leaks **0** — cả 5 chỉ số bắt buộc đạt trên gói S3; bộ nền `R-base-after-20261118-204816-89e5b3` cũng 110/110. |
-| Bằng chứng 2 | `R-S3-after-...204727`: cost_per_ticket **4.405đ** ≤ 8.000đ; ROI **1.27** ≥ 0.25; queue_stuck **0**; auto_refund_day_max **109.400đ** ≤ 1.500.000đ — cả 3 ngưỡng business_ops đạt. |
-| Bằng chứng 3 | So với prepared `R-S3-prepared-20261118-204726-89e5b3`: pass **0.8333 → 1.0**; lỗi hãng oan **10 → 0**; sửa đúng `S3-42`/`S3-43` (lỗi MKD thứ 3/4) bằng trần 2 lỗi/hãng/ngày; không regression. |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `R-S3-after-20261118-210037-89e5b3`: pass_rate **1.0**, pass_k **1.0**, wrongful_refund_vnd **0**, wrongful_carrier_faults **0**, pii_leaks **0** — cả 5 chỉ số bắt buộc đạt trên gói S3; bộ nền `R-base-after-20261118-204816-89e5b3` cũng 110/110. |
+| Bằng chứng 2 | `R-S3-after-...210037`: cost_per_ticket **4.405đ** ≤ 8.000đ; ROI **1.27** ≥ 0.25; queue_stuck **0**; auto_refund_day_max **109.400đ** ≤ 1.500.000đ — cả 3 ngưỡng business_ops đạt. |
+| Bằng chứng 3 | So với prepared `R-S3-prepared-20261118-210037-89e5b3`: pass **0.8333 → 1.0**; lỗi hãng oan **10 → 0**; sửa đúng `S3-42`/`S3-43` (lỗi MKD thứ 3/4) bằng trần 2 lỗi/hãng/ngày; không regression. |
 | Khớp dòng nào trong `decision_rule` đã ký? | "**Tiếp tục**: Tất cả 5 chỉ số bắt buộc và 3 ngưỡng business_ops đều đạt trên cả bộ nền lẫn gói sự cố, đồng thời không có dòng vượt trần nào trong báo cáo." |
 | Nếu Thu hẹp: cắt kho nào / còn bao nhiêu phần trăm / mấy người trực, và ticket bị cắt đi đâu | Không áp dụng. |
 | Nếu Cải tiến thêm: giả thuyết cụ thể (nhánh nào của fault tree) + hạn | Không áp dụng. |
@@ -448,7 +448,7 @@ Cột v1 nằm ở Phiếu B mục B8; không sửa cột đó.
 
 **Chỉ ở v2**
 - Quyết định đổi hay giữ so với v1? Vì con số nào: **Giữ Tiếp tục**. V1 dựa trên base/prepared 110/110 và 9/9 ngưỡng đạt; v2 xác nhận sau sửa S3: after **60/60**, 0 hoàn sai, 0 lỗi hãng oan, ROI **1.27**, 0 ca ùn.
-- Report tự kiểm tra: mã lần chạy `R-S3-grade-20261118-204724-89e5b3` · ô nào còn đỏ (nguyên nhân × tầng): **không còn ô đỏ trên visible**; `criteria ✅`, `visible ✅`, `regression ✅`, `monitor ✅`; chỉ `1 integrity ❌` vì máy thiếu gói S1/S2/S4–S8, không phải lỗi nguyên nhân × tầng.
+- Report tự kiểm tra: mã lần chạy `R-S3-grade-20261118-210032-89e5b3` · ô nào còn đỏ (nguyên nhân × tầng): **không còn ô đỏ trên visible**; `criteria ✅`, `visible ✅`, `regression ✅`, `monitor ✅`; chỉ `1 integrity ❌` vì máy thiếu gói S1/S2/S4–S8, không phải lỗi nguyên nhân × tầng.
 - Cổng vòng 1 (mốc prepared) đã đỡ được gì trước khi bàn biết sự cố, và bỏ sót gì: đỡ hoàn sai **900.000đ → 0**, under-refund **667.000đ → 0**, lỗi hãng oan **35 → 10**, ROI **−2.59 → 1.51**; bỏ sót **trần 2 lỗi/hãng/ngày** nên còn 10 lỗi MKD ở `S3-42/43`.
 - Report ghi "được phép cân nhắc Tiếp tục" hay "không đủ căn cứ"? Quyết định của bàn có khớp không: report ghi **`continue_allowed: true`** (không vượt trần, mọi ngưỡng đã ký đạt trên visible); quyết định **Tiếp tục** khớp. Điều kiện còn lại là `1 integrity`, cần Coach xác nhận manifest chấm.
 - Một thứ bộ thử hôm nay chưa đo, và nó ảnh hưởng quyết định ra sao: chưa có **sổ giao/số lỗi thực tế của hãng** và **tỉ lệ tracking thiếu `delay_cause`** ngoài mock; nếu tỉ lệ thiếu cause cao, cổng G2 có thể chặn oan và làm hãng/khách chờ — cần đo trong pilot trước khi mở rộng.

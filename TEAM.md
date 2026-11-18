@@ -59,14 +59,14 @@ Kỹ sư cổng 1, giữ máy chính. Sửa `lab10/guards.py`; Phiếu B mục B
 ### Đóng góp cụ thể
 
 - Cổng vòng 1 trong `lab10/guards.py`: (1) `pre_guard` ghim chính sách theo ngày hiệu lực, không tin cờ `index_active`; (2) `write_gate/issue_refund` tính lại quyền lợi từ tracking + chính sách hiệu lực, kiểm approval đúng ticket/còn hạn/đủ `max_vnd`, chặn ghi trùng, ép `payer = LOGIX`; (3) `write_gate/file_carrier_fault` chọn đúng kiện trễ và chỉ ghi khi tracking có nguyên nhân thuộc lỗi hãng; (4) `write_gate/notify_carrier` chỉ gửi các trường trong `carrier_notice_fields`.
-- Vòng 2 (S3): thêm trần `ops_limits.max_auto_strikes_per_carrier_per_day = 2` trong `file_carrier_fault`, chặn lỗi thứ 3 trở đi; nhờ đó `S3-42`/`S3-43` không còn bị ghi lỗi oan.
-- Chạy mốc base, after, prepared; chốt cổng vòng 1 `40708a2c`; chạy lệnh 6 ba mốc và lệnh 7.
+- Vòng 2 (S3): thêm trần `ops_limits.max_auto_strikes_per_carrier_per_day = 2` trong `file_carrier_fault`, chặn lỗi thứ 3 trở đi; nhờ đó `S3-42`/`S3-43` không còn bị ghi lỗi oan; thêm monitor `max_carrier_strikes_per_day` trong `lab10/monitors.py` (nền 1.0 · S3 before 4.0 · after 2.0).
+- Chạy mốc base, after, prepared; chốt cổng vòng 1 `40708a2c`; chạy lệnh 6 ba mốc và lệnh 7 (ĐỦ THÀNH PHẦN).
 
 ### Bằng chứng
 
-- Commit: `dc7b7b1` (cổng vòng 1 + B7.1), `a1333a1` (checkpoint + B0 dòng 3), `b214d81` (trần lỗi hãng + C0/C1/C7), `7b744dc` (cập nhật theo grade cuối).
-- Lần chạy: base `R-base-before-20261118-172311-b161aa`; after `R-base-after-20261118-173515-6203de`; prepared `R-base-prepared-20261118-173617-6203de`; S3 grade `R-S3-grade-20261118-174246-66cedf` (base/prepared/after `...174246/174247`); S3 after `R-S3-after-20261118-174231-66cedf`; base after vòng 2 `R-base-after-20261118-174239-66cedf`.
-- Phiếu: A5 (C ghi), B0 dòng 1–3, B1, B7.1, C0 dòng 1–4, C1, C7.
+- Commit: `dc7b7b1` (cổng vòng 1 + B7.1), `a1333a1` (checkpoint + B0 dòng 3), `b214d81` (trần lỗi hãng + C0/C1/C7), `7b744dc` (cập nhật theo grade cuối), `1365c75` (`.gitattributes` giữ byte đã ký/chốt), `c995f05` (mục cá nhân), `0ad7f6b`/`48464a9`/`a514ca9` (bài nộp + manifest).
+- Lần chạy: base `R-base-before-20261118-172311-b161aa`; after `R-base-after-20261118-173515-6203de`; prepared `R-base-prepared-20261118-173617-6203de`; S3 grade `R-S3-grade-20261118-210032-89e5b3` (base/prepared/after `R-S3-before-...210037`, `R-S3-prepared-...210037`, `R-S3-after-...210037`); S3 after `R-S3-after-20261118-204807-89e5b3`; base after vòng 2 `R-base-after-20261118-204816-89e5b3`.
+- Phiếu: A5 (A chạy `criteria sign` trên máy chính; C ghi phiếu), B0 dòng 1–3, B1, B7.1, C0 dòng 1–4, C1, C7.
 - Hash: criteria `bacb89e1`, checkpoint `40708a2c`.
 
 ### Exit ticket
