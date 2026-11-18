@@ -31,7 +31,7 @@ Mọi con số trong quyết định Gate 1 phải trỏ về một dòng ở đ
 |---|---|---|---|---|---|---|---|---|
 | 1 | `R-base-before-20261118-172311-b161aa` | base · base | (baseline, chưa có cổng) | 0.9909 [0.9727; 1.0] | 0.9545 | 20.000đ · 1 · 0 | 0.2273 | 110 lần chạy, đúng 109; chỉ hỏng `T-002@55` (model tin số ngày khách khai). Hai ngưỡng bắt buộc về hoàn sai và lỗi hãng oan chưa đạt; kinh doanh/vận hành đều đạt. |
 | 2 | `R-base-after-20261118-173515-6203de` | base · after | (cổng vòng 1, thử trước khi chốt) | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.2273 | 110/110 đạt; cổng sửa đúng `T-002@55`, không làm hỏng ca nào khác; kinh doanh/vận hành đều đạt. |
-| 3 | | base · prepared | (cổng vòng 1 đã chốt) | | | | | |
+| 3 | `R-base-prepared-20261118-173617-6203de` | base · prepared | (cổng vòng 1 đã chốt, hash `40708a2c`) | 1.0 [1.0; 1.0] | 1.0 | 0đ · 0 · 0 | 0.2273 | Bản chốt giữ đúng hành vi của `after`: 110/110 đạt, cả 9 ngưỡng đã ký đều đạt, không vượt trần. |
 | 4 | | | | | | | | |
 
 ---
