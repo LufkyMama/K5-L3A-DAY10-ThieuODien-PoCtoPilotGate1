@@ -2,22 +2,21 @@
 
 ## Thông tin nhóm
 
-- Tên nhóm (`TenNhom`, không dấu, không khoảng trắng):
-- Lớp: `L3A` / `L3B`
-- Repo của bàn: `K5-<L3A|L3B>-DAY10-<TenNhom>-PoCtoPilotGate1`
-- Thẻ sự cố đã bốc (S1–S8):
+- Tên nhóm (`TenNhom`, không dấu, không khoảng trắng): ThieuODien
+- Lớp: `L3A`
+- Repo của bàn: `K5-L3A-DAY10-ThieuODien-PoCtoPilotGate1`
+- Thẻ sự cố đã bốc (S1–S8): S3
 
 ## Thành viên
 
 Họ tên đầy đủ và MSSV của **mọi** thành viên; thêm dòng nếu cần. Vai: Kỹ sư cổng · Sản phẩm và kinh doanh · Vận hành và pháp lý (README mục 3, phút 0–15).
 
-| STT | Họ và tên | MSSV | Vai | Trưởng nhóm |
-| --: | --------- | ---- | --- | :---------: |
-|   1 |           |      |     |             |
-|   2 |           |      |     |             |
-|   3 |           |      |     |             |
-|   4 |           |      |     |             |
-|   5 |           |      |     |             |
+| STT | Họ và tên            | MSSV        | Vai                    | Trưởng nhóm |
+| --: | -------------------- | ----------- | ---------------------- | :---------: |
+|   1 | Nguyễn Quang Đạo     | 2A202603614 | Sản phẩm và kinh doanh |      x      |
+|   2 | Đàm Tuấn Linh        | 2A202603624 | Vận hành và pháp lý    |             |
+|   3 | Vũ Nguyễn Hoàng Minh | 2A202603541 | Kỹ sư cổng             |             |
+|   4 | Bùi Thế Anh          | 2A202603546 | Kỹ sư cổng             |             |
 
 Ghi `members` trong `submission/submission.json` theo dạng `"HoVaTen-MSSV"`, khớp bảng trên.
 

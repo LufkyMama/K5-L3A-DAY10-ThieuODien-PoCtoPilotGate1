@@ -1,6 +1,6 @@
 # Phiếu B · Đo, rủi ro, cổng vòng 1 và quyết định v1 · Khối 2A + 2B + chốt (phút 65–115)
 
-**Bàn:** ______
+**Bàn:** K5-L3A-DAY10-ThieuODien-PoCtoPilotGate1
 
 Tiêu chí đã ký ở Phiếu A. Từ phút 65 bàn mới được chạy trợ lý. Khối 2A (65–85) chưa sửa code hay config. Khối 2B (85–105) sửa
 `lab10/guards.py` và `config/operating_gates.json`. Phút 105–115 chốt cổng vòng 1 rồi viết quyết định v1. Sau phút 115 không sửa phiếu này
@@ -120,24 +120,24 @@ Gợi ý: mở `data/world.json` phần `policies`, `orders[].parcels`, `ops_lim
 
 | Mục | Điền cho trợ lý hoàn tiền |
 |---|---|
-| Người dùng | |
-| Việc người dùng cần làm xong | |
-| Đầu ra của hệ thống (kể cả các lệnh ghi) | |
-| Dữ liệu trợ lý đọc lúc chạy (bảng nào trong `data/world.json`) | |
-| Trường then chốt quyết định tiền và lỗi hãng | |
-| Với mỗi trường then chốt: **nguồn sự thật** hay **bản sao** (ai cập nhật, khi nào)? | |
-| Định dạng cần để ý (ngày, trường được phép trống, đơn nhiều kiện) | |
-| Thế giới thật làm dữ liệu lệch ở đâu (theo mùa, đổi chính sách, giờ cao điểm, người nhập tay)? | |
-| Câu người ngoài sẽ hỏi về nguồn dữ liệu ("sao hệ thống biết đơn trễ mấy ngày?") | |
+| Người dùng | Nhân viên CSKH & Trưởng ca (`NV-HANH`, duyệt các ca chuyển người), Giám sát vận hành (`NV-TUNG`), Kế toán đối soát (`NV-OANH`); gián tiếp gồm khách hàng gửi ticket, hãng vận chuyển và shop. |
+| Việc người dùng cần làm xong | Tiếp nhận khiếu nại giao trễ, đối chiếu đơn hàng và dữ liệu tracking, tính và ghi khoản hoàn đúng quy định vào sổ cái, ghi/báo lỗi đúng hãng vận chuyển, trả lời khách khớp sổ cái hoặc chuyển người duyệt kịp SLA 60 phút. |
+| Đầu ra của hệ thống (kể cả các lệnh ghi) | Trạng thái cuối (`refunded`, `denied`, `escalated`, `replied`), `decision_note`; 4 lệnh ghi: `issue_refund` (ghi sổ cái `ledger`), `file_carrier_fault` (ghi bảng `faults`), `notify_carrier` (gửi `outbound` tới hãng), `send_reply` (gửi `outbound` tới khách). |
+| Dữ liệu trợ lý đọc lúc chạy (bảng nào trong `data/world.json`) | `orders` (gồm `parcels[]`, `recipient`, `checkout_note`, `refund_status`, `is_gift`), `policies` (`REFUND-v2/v3/v4`), `approvals`, `carriers`, `customers`, `ops_limits`, `ops_facts`, `staff_behavior`; kèm đầu vào `ticket.text`. |
+| Trường then chốt quyết định tiền và lỗi hãng | Tính tiền: `orders[].shipping_fee_vnd`, `goods_value_vnd`, `refund_status`, `parcels[].promised_date`, `delivered_date`, `delay_cause`, `policies[].late / auto_limit_vnd / no_refund_causes / effective_from / effective_to`, `approvals[].max_vnd / status / expires_at`. Lỗi hãng: `parcels[].parcel_id`, `carrier_id`, `delay_cause`, `policies[].fault_causes`. |
+| Với mỗi trường then chốt: **nguồn sự thật** hay **bản sao** (ai cập nhật, khi nào)? | **Nguồn sự thật:** `parcels[].promised_date / delivered_date / delay_cause` (hệ thống tracking/máy quét điểm phát cập nhật khi giao), `ledger` (sổ cái thanh toán ghi tức thời), `approvals[]` (do `NV-HANH` cấp), `policies[].effective_from / effective_to` (ban hành chính sách). **Bản sao / dễ lệch:** `orders[].refund_status` (cờ đối soát chạy batch ban đêm, trễ so với `ledger` trong ngày), `policies[].index_active` (cờ chỉ mục bật tay, có thể lệch ngày hiệu lực thực tế). **Không phải nguồn sự thật:** `ticket.text` và `order.checkout_note` (khách tự gõ). |
+| Định dạng cần để ý (ngày, trường được phép trống, đơn nhiều kiện) | Ngày ISO `YYYY-MM-DD` (`as_of: "2026-11-16"`); trường được phép `null`: `delivered_date` (`null` khi `status = "IN_TRANSIT"` như `O-1011`, `O-1014` → tính tới `as_of`), `delay_cause` (`null` khi giao đúng hẹn), `effective_to` (`null` với `REFUND-v4`); `orders[].parcels` là mảng (đơn nhiều kiện như `O-1013` có `O-1013-P1` trễ qua `GHSH` và `O-1013-P2` đúng hẹn qua `LGX`). |
+| Thế giới thật làm dữ liệu lệch ở đâu (theo mùa, đổi chính sách, giờ cao điểm, người nhập tay)? | Chuyển chính sách theo lịch (`REFUND-v3` hết hạn `2026-11-30`, `REFUND-v4` hiệu lực `2026-12-01` thay đổi `min_days_fee`, `auto_limit_vnd` và bỏ `FORCE_MAJEURE` khỏi `fault_causes`) nếu `index_active` không cập nhật kịp; mùa sale/bão lũ làm tăng gấp 3 lưu lượng gây ùn hàng chờ, tăng ca `FORCE_MAJEURE`, điểm phát quét sót `delivered_date`; khách gửi lặp nhiều ticket trước batch đêm hoặc gài chỉ thị/số ngày trễ trong `ticket.text`, `checkout_note`. |
+| Câu người ngoài sẽ hỏi về nguồn dữ liệu ("sao hệ thống biết đơn trễ mấy ngày?") | *"Sao hệ thống biết đơn trễ mấy ngày và vì sao quy lỗi cho hãng X?"* → Đối chiếu `parcels[].delivered_date` (hoặc `as_of` nếu đang giao) trừ `promised_date` và đọc `delay_cause` từ DB tracking, không tin số ngày khách tự khai; xác định chính sách theo `as_of` nằm trong `[effective_from, effective_to]`. |
 
 **Tóm lại (điền vào chỗ trống):**
-Trợ lý dùng `__________`, `__________`, `__________` để giúp `__________` làm được `__________`.
-Trường mà nếu sai thì tiền hoặc lỗi hãng sai theo: `__________`, `__________`.
-Chúng tôi biết thế giới thật sẽ làm dữ liệu lệch ở: `__________`. Dấu hiệu nhìn thấy sớm nhất: `__________`.
+Trợ lý dùng `orders (và parcels)`, `policies`, `approvals` để giúp `nhân viên CSKH / trưởng ca duyệt và bộ phận đối soát` làm được `việc kiểm tra điều kiện, hoàn tiền đúng hạn mức và quy lỗi hãng chính xác`.
+Trường mà nếu sai thì tiền hoặc lỗi hãng sai theo: `parcels[].delivered_date / delay_cause`, `policies[].effective_from / index_active (và orders[].refund_status)`.
+Chúng tôi biết thế giới thật sẽ làm dữ liệu lệch ở: `mốc chuyển giao chính sách REFUND-v3 sang REFUND-v4 ngày 2026-12-01 và cờ đối soát batch đêm refund_status`. Dấu hiệu nhìn thấy sớm nhất: `tỉ lệ chênh lệch giữa chính sách có index_active = true với effective_policy(as_of) hoặc tăng đột biến ca hoàn lặp / ghi lỗi hãng FORCE_MAJEURE`.
 
-**Ví dụ drift trong 3 tháng tới** (lấy từ dòng "thế giới thật làm dữ liệu lệch"): cái gì đổi `____` · đổi ngày nào `____` ·
-trường nào cho thấy `____` · con số nào của Bản tiêu chí bị ảnh hưởng `____`.
-Đây là đầu vào đổi hay quan hệ vào–ra đổi? Chỉ số nào sẽ phát hiện? `__________`
+**Ví dụ drift trong 3 tháng tới** (lấy từ dòng "thế giới thật làm dữ liệu lệch"): cái gì đổi `Chính sách hoàn tiền chuyển từ REFUND-v3 sang REFUND-v4` · đổi ngày nào `2026-12-01` ·
+trường nào cho thấy `policies[].effective_from ("2026-12-01"), late.min_days_fee (3 -> 2), auto_limit_vnd (200000 -> 100000), fault_causes (bỏ FORCE_MAJEURE, chỉ còn ["CARRIER"])` · con số nào của Bản tiêu chí bị ảnh hưởng `pass_rate, pass_k, wrongful_refund_vnd, wrongful_carrier_faults, escalation_rate`.
+Đây là đầu vào đổi hay quan hệ vào–ra đổi? Chỉ số nào sẽ phát hiện? `Quan hệ vào–ra đổi (concept drift): cùng một đơn trễ 2 ngày hoặc trễ do bão lũ (FORCE_MAJEURE), quy tắc tính tiền và quy lỗi hãng đổi hoàn toàn từ 2026-12-01. Phát hiện bằng monitor đo tỉ lệ lần chạy dùng policy khác effective_policy(as_of) và cảnh báo các ca file_carrier_fault có delay_cause = FORCE_MAJEURE sau 2026-12-01.`
 
 **Ví dụ một dòng (đừng chép):** trường then chốt `parcels[].delivered_date` · bản ghi do máy quét ở điểm phát tạo ra, là nguồn
 sự thật về ngày giao · lệch khi điểm phát quét sót hoặc nhập bù bằng tay.
@@ -308,10 +308,10 @@ Mỗi con số kèm một câu lý do, lấy từ `data/world.json` → `ops_lim
 
 | Khoá | Giá trị bàn đặt | Lý do (một câu, có số) |
 |---|---|---|
-| `business.daily_refund_cap_vnd` | | |
-| `business.cost_budget_per_ticket_vnd` | | |
-| `business.pilot_scope` (all / warehouse / percent) | | |
-| `business.roi_min` | | |
+| `business.daily_refund_cap_vnd` | `1500000` | Ngân sách Finance tối đa cho hoàn tự động là `2.000.000đ/ngày` (`ops_limits.daily_auto_refund_budget_vnd`), nên đặt trần `1.500.000đ` (75% ngân sách) để giữ vùng đệm `500.000đ` và chuyển các khoản vượt trần cho người duyệt trước khi vỡ ngân sách. |
+| `business.cost_budget_per_ticket_vnd` | `1500` | Khớp đúng trần `ops_limits.max_llm_cost_per_ticket_vnd = 1.500đ/ticket` (15% chi phí làm tay `10.000đ` trong `ops_facts`), giúp chặn các ticket hoặc `checkout_note` dài bất thường gây đội chi phí token mà không chặn nhầm ticket thường. |
+| `business.pilot_scope` (all / warehouse / percent) | `{"mode": "all", "warehouses": [], "percent": 100}` | Thử trên 100% phạm vi ở vòng 1 để đo đầy đủ mọi phân khúc kho/hãng trước khi chốt Gate 1 và sẵn sàng thu hẹp kho hoặc phần trăm ở vòng 2 nếu có phân khúc lỗ hay ùn. |
+| `business.roi_min` | `0.25` | Khớp đúng ngưỡng `business_ops.roi_min = 0.25` đã ký trong `acceptance_criteria.json`, tương ứng mục tiêu chi phí tối đa `8.000đ/ticket` so với làm tay `10.000đ` (`(10.000 - 8.000) / 8.000 = 0,25`). |
 
 ### B7.5 · Câu 2.10 · Cổng con người, vận hành, pháp lý + Runbook phần 1–3
 
@@ -392,22 +392,22 @@ bao nhiêu thời gian? (3) Có phần nào của dự án không nên làm ti�
 
 | | **v1** (phút 105–115, TRƯỚC khi nhận thẻ sự cố) |
 |---|---|
-| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | |
-| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | |
-| Mã lần chạy dùng làm bằng chứng | bộ nền, mốc base: ________ · bộ nền với cổng vòng 1 (prepared): ________ |
-| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | |
-| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | |
-| Quyết định (khoanh một) | Tiếp tục · Thu hẹp · Cải tiến thêm · Dừng |
-| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | |
-| Bằng chứng 2 | |
-| Bằng chứng 3 | |
-| Khớp dòng nào trong `decision_rule` đã ký? | |
-| Nếu Thu hẹp: cắt phần nào, vì sao | |
-| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | |
-| Nếu Dừng: bài học ghi lại | |
-| Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | |
-| Ngày quyết định lại (trừ khi Dừng) | |
-| PIC ký | |
+| Commit ký tiêu chí (message `Sign acceptance criteria`; hash commit, tuỳ chọn) | `[Chờ A chạy criteria sign và push ở phút 60–65]` |
+| Hash chốt cổng vòng 1 (8 ký tự lệnh `lab10.checkpoint` in ra, tuỳ chọn) | `[Chờ A chạy lab10.checkpoint ở phút 105–115]` |
+| Mã lần chạy dùng làm bằng chứng | bộ nền, mốc base: `[R-base-before-...]` · bộ nền với cổng vòng 1 (prepared): `[R-base-prepared-...]` |
+| Còn dòng "vượt trần" nào trong report? (hàng chờ, chi phí, ROI, trần tiền, pháp lý) | `[Chép dòng vượt trần từ output lab10.eval --suite base --stage prepared trên máy A]` |
+| Kho hoặc hãng có số xấu nhất: ____. Nếu chỉ nhìn phân khúc này, quyết định có đổi không? *(Đọc khối "theo kho và hãng" ở cuối output `lab10.eval` / `lab10.grade`, hoặc mục `by_segment` trong `report.json`.)* | `[Đọc mục theo kho và hãng ở cuối output prepared trên máy A: ghi tên kho/hãng xấu nhất + pass_rate/chi phí, rồi kết luận giữ hay đổi quyết định]` |
+| Quyết định (khoanh một) | `[Khoanh sau khi xem prepared: Tiếp tục nếu đạt hết mọi chỉ số bắt buộc & business_ops và không vượt trần; nếu không thì chọn Thu hẹp hoặc Cải tiến thêm]` |
+| Bằng chứng 1: mã lần chạy + chỉ số bắt buộc nào đạt / chưa | `[Mã R-base-prepared-...]: pass_rate = ..., pass_k = ..., wrongful_refund_vnd = ..., wrongful_carrier_faults = ..., pii_leaks = ...` |
+| Bằng chứng 2 | `[Kinh doanh/vận hành]: cost_per_ticket = ...đ (<= 8.000đ), ROI = ... (>= 0.25), queue_stuck = ... (= 0), auto_refund_day_max = ...đ (<= 1.500.000đ)` |
+| Bằng chứng 3 | `[So với base R-base-before-...]: cổng vòng 1 đã sửa/chặn các ca ... và không gây regression trên bộ nền` |
+| Khớp dòng nào trong `decision_rule` đã ký? | `[Chép nguyên văn dòng tương ứng trong config/acceptance_criteria.json → decision_rule]` |
+| Nếu Thu hẹp: cắt phần nào, vì sao | `[Điền nếu chọn Thu hẹp; ghi "Không áp dụng" nếu chọn phương án khác]` |
+| Nếu Cải tiến thêm: giả thuyết cụ thể + hạn | `[Điền nếu chọn Cải tiến thêm; ghi "Không áp dụng" nếu chọn phương án khác]` |
+| Nếu Dừng: bài học ghi lại | `[Điền nếu chọn Dừng; ghi "Không áp dụng" nếu chọn phương án khác]` |
+| Một bằng chứng còn thiếu (thứ bộ nền chưa đo được) | Bộ nền 22 ticket chỉ dùng MockLLM tất định và các ca hợp lệ bình thường; chưa đo được các ca tấn công đối kháng (prompt injection, khai man), biến cố tăng tải gấp 3 ở giờ cao điểm, hay tác động khi chính sách chuyển từ `REFUND-v3` sang `REFUND-v4` ngày `2026-12-01`. |
+| Ngày quyết định lại (trừ khi Dừng) | `2026-12-01` |
+| PIC ký | `Sản phẩm và Kinh doanh (C) · Giám sát vận hành (NV-TUNG)` |
 
 Xong v1 thì lưu và đẩy một bản (sau mốc này không sửa cột v1):
 
