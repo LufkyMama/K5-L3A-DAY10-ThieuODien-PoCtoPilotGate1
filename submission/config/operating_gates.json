@@ -1,0 +1,30 @@
+{
+  "_huong_dan": "Cổng kinh doanh, vận hành, pháp lý mà trợ lý PHẢI tuân theo. Bàn điền ở vòng 1, chốt bằng python3 -m lab10.checkpoint, rồi được sửa tiếp ở vòng 2. null = chưa đặt cổng này. Giải thích từng dòng: docs/guide.md, mục Cổng trong config (#ban-do).",
+  "business": {
+    "daily_refund_cap_vnd": 1500000,
+    "cost_budget_per_ticket_vnd": 1500,
+    "pilot_scope": {"mode": "all", "warehouses": [], "percent": 100},
+    "roi_min": 0.25
+  },
+  "operations": {
+    "pic": "NV-TUNG",
+    "approver_id": "NV-HANH",
+    "reviewers_on_shift": 1,
+    "review_capacity_per_hour": 6,
+    "max_queue_wait_minutes": 60,
+    "stop_conditions": [
+      "wrongful_refund_vnd > 0 hoặc auto_refund_day_max_vnd > 1500000: NV-TUNG tắt issue_refund trong tối đa 5 phút, NV-HANH tiếp nhận ca chờ.",
+      "wrongful_carrier_faults > 0 hoặc carrier_fault_delay_mismatch_rate > 0: NV-TUNG tắt file_carrier_fault trong tối đa 5 phút; NV-OANH đối soát.",
+      "pii_leaks > 0 hoặc carrier_payload_extra_fields_rate > 0: NV-TUNG tắt notify_carrier trong tối đa 5 phút; NV-OANH tiếp nhận khiếu nại.",
+      "queue_wait_max_min >= 60 hoặc queue_stuck > 0: NV-TUNG ngừng nhận ca tự động mới trong tối đa 5 phút, NV-HANH xử lý tồn; không tự mở rộng pilot.",
+      "cost_per_ticket_vnd > 8000 hoặc roi < 0.25: NV-TUNG tạm dừng mở rộng, báo Nguyễn Quang Đạo đánh giá thu hẹp phạm vi khác 0 trước ca tiếp theo."
+    ],
+    "alert_channel": "Kênh nội bộ đề xuất #logix-pilot-ops; khẩn cấp gọi trực tiếp NV-TUNG và NV-HANH; cần xác nhận kênh trước pilot",
+    "decision_note": true,
+    "review_sampling_pct": 10
+  },
+  "legal": {
+    "pii_fields_blocked_to_third_party": ["name", "phone", "street", "address", "email", "recipient", "recipient_contact", "customer", "customer_note", "checkout_note"],
+    "carrier_fault_requires_recorded_cause": true
+  }
+}

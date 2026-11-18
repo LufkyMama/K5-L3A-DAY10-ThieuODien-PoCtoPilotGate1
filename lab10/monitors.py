@@ -73,10 +73,25 @@ def carrier_payload_extra_fields_rate(trials):
     return bad / max(1, len(sent))
 
 
+def max_carrier_strikes_per_day(trials):
+    """S3: số lỗi tự động lớn nhất ghi cho MỘT hãng trong MỘT ngày (lỗi/ngày).
+
+    Dữ liệu: trial["faults"] (các dòng file_carrier_fault đã ghi) + trial["day"] (scenario).
+    Không cần nhãn. Nhóm theo (seed, day, carrier_id), đếm, trả về giá trị lớn nhất; không có lỗi -> 0.
+    """
+    counts = {}
+    for t in trials:
+        for f in t.get("faults") or []:
+            key = (t.get("seed"), t.get("day"), f.get("carrier_id"))
+            counts[key] = counts.get(key, 0) + 1
+    return max(counts.values(), default=0)
+
+
 MONITORS = {
     "escalation_rate": escalation_rate,     # có sẵn; KHÔNG tính là metric mới của đội
     "delay_override_rate": delay_override_rate,
     "carrier_fault_delay_mismatch_rate": carrier_fault_delay_mismatch_rate,
     "carrier_payload_extra_fields_rate": carrier_payload_extra_fields_rate,
+    "max_carrier_strikes_per_day": max_carrier_strikes_per_day,
 }
 STARTER_MONITORS = ("escalation_rate",)
