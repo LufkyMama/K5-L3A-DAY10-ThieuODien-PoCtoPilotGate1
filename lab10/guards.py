@@ -139,6 +139,11 @@ def _gate_carrier_fault(ctx, action):
     if not H.carrier_at_fault(pol, parcel, delay):
         return Verdict.deny("tracking không ghi nguyên nhân thuộc lỗi hãng: không ghi lỗi oan")
 
+    # Vòng 2 (S3): trần số lỗi tự động cho một hãng trong ngày (ops_limits), lỗi thứ 3 trở đi cần người xác nhận.
+    cap = ctx.tools.ops_limits().get("max_auto_strikes_per_carrier_per_day")
+    if cap is not None and len(ctx.tools.fault_rows(carrier_id=parcel["carrier_id"])) >= _as_int(cap):
+        return Verdict.deny("hãng đã đủ số lỗi tự động trong ngày: cần người xác nhận trước khi ghi thêm")
+
     changes = {}
     if action.get("parcel_id") != parcel["parcel_id"]:
         changes["parcel_id"] = parcel["parcel_id"]
